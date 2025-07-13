@@ -1,144 +1,169 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Genius Evaluator X</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Evaluador Educativo IA - LibelIA</title>
   <style>
     body {
-      background-color: #f4f6f9;
-      padding: 2rem;
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
     }
-    .container {
+    header {
+      background: #4b0082;
+      color: #fff;
+      padding: 1em;
+      text-align: center;
+    }
+    main {
+      padding: 2em;
+      max-width: 800px;
+      margin: auto;
       background: white;
-      padding: 2rem;
       border-radius: 10px;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    .feedback-area, .historial-area, .proceso-area {
-      margin-top: 2rem;
+    h2 {
+      color: #4b0082;
     }
-    .preview-image {
-      max-width: 100%;
-      margin-top: 1rem;
+    label {
+      display: block;
+      margin: 0.5em 0 0.2em;
+    }
+    input, textarea, select, button {
+      width: 100%;
+      padding: 0.7em;
+      margin-bottom: 1em;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #4b0082;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #360062;
+    }
+    .output {
+      background: #eef;
+      padding: 1em;
+      border-radius: 5px;
+      margin-top: 1em;
+    }
+    .flex-row {
+      display: flex;
+      gap: 1em;
+      flex-wrap: wrap;
+    }
+    .half {
+      flex: 1 1 48%;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1 class="text-center mb-4">Genius Evaluator X 📚🤖</h1>
+  <header>
+    <h1>📚 Evaluador Educativo IA - LibelIA</h1>
+  </header>
+  <main>
+    <section>
+      <h2>Evaluar Texto del Estudiante</h2>
+      <form id="evalForm">
+        <label for="alumno">Nombre del estudiante:</label>
+        <input type="text" id="alumno" name="alumno" required>
 
-    <!-- Evaluación de texto -->
-    <form id="evaluacionForm">
-      <h4>📄 Evaluar Texto del Estudiante</h4>
-      <div class="mb-3">
-        <label for="alumno" class="form-label">Alumno:</label>
-        <input type="text" id="alumno" name="alumno" class="form-control" required />
-      </div>
-      <div class="mb-3">
-        <label for="evaluacion" class="form-label">Texto del estudiante:</label>
-        <textarea id="evaluacion" name="evaluacion" class="form-control" rows="4" required></textarea>
-      </div>
-      <div class="mb-3">
-        <label for="rubrica" class="form-label">Rúbrica:</label>
-        <textarea id="rubrica" name="rubrica" class="form-control" rows="3" required></textarea>
-      </div>
-      <button type="submit" class="btn btn-primary">Enviar a Evaluar</button>
-    </form>
+        <label for="evaluacion">Texto del estudiante:</label>
+        <textarea id="evaluacion" name="evaluacion" rows="5" required></textarea>
 
-    <div class="feedback-area">
-      <h4>🧠 Feedback Generado:</h4>
-      <pre id="feedbackOutput" class="bg-light p-3 rounded"></pre>
-      <button id="guardarBtn" class="btn btn-success mt-2">Guardar Evaluación</button>
-    </div>
+        <label for="rubrica">Rúbrica (criterios de evaluación):</label>
+        <textarea id="rubrica" name="rubrica" rows="3" required></textarea>
 
-    <!-- OCR con imagen -->
-    <form id="ocrForm" class="mt-5">
-      <h4>🖼️ Extraer texto de imagen (OCR)</h4>
-      <input type="file" id="ocrImage" name="file" class="form-control" accept="image/*" required />
-      <button type="submit" class="btn btn-secondary mt-2">Extraer Texto</button>
-      <img id="preview" class="preview-image" />
-    </form>
+        <button type="submit">📩 Enviar a Evaluar</button>
+      </form>
+      <div id="resultado" class="output"></div>
+    </section>
 
-    <!-- Evaluaciones en Proceso -->
-    <div class="proceso-area">
-      <h4>📂 Evaluaciones en Proceso</h4>
-      <div id="procesosList">(Aún no implementado)</div>
-    </div>
+    <section>
+      <h2>📷 Extraer Texto desde Imagen (OCR)</h2>
+      <form id="ocrForm">
+        <input type="file" id="imagen" name="imagen" accept="image/*" required>
+        <button type="submit">📤 Subir Imagen</button>
+      </form>
+      <div id="ocrResultado" class="output"></div>
+    </section>
 
-    <!-- Historial -->
-    <div class="historial-area">
-      <h4>📁 Historial del Estudiante</h4>
-      <input type="text" id="memoriaAlumno" placeholder="Nombre del alumno" class="form-control mb-2" />
-      <button id="verMemoria" class="btn btn-info">Ver Memoria</button>
-      <pre id="memoriaOutput" class="bg-light p-3 rounded mt-2"></pre>
-    </div>
+    <section>
+      <h2>📝 Evaluaciones Guardadas (Demo)</h2>
+      <form id="guardarForm">
+        <label for="json">JSON del resultado IA:</label>
+        <textarea id="json" name="json" rows="4" placeholder="Pegue aquí el JSON del resultado..." required></textarea>
+        <button type="submit">💾 Guardar</button>
+      </form>
+      <div id="guardarStatus" class="output"></div>
+    </section>
 
-    <!-- Exportación -->
-    <div class="mt-4">
-      <button class="btn btn-outline-primary">Exportar a PDF</button>
-      <button class="btn btn-outline-secondary">Exportar a Word</button>
-    </div>
-  </div>
+    <section>
+      <h2>🔎 Buscar Memoria por Estudiante</h2>
+      <form id="memoriaForm">
+        <label for="memAlumno">Nombre del estudiante:</label>
+        <input type="text" id="memAlumno" name="memAlumno" required>
+        <button type="submit">🔍 Buscar</button>
+      </form>
+      <div id="memoriaResultado" class="output"></div>
+    </section>
+  </main>
 
   <script>
-    const form = document.getElementById("evaluacionForm");
-    const feedbackOutput = document.getElementById("feedbackOutput");
-    const guardarBtn = document.getElementById("guardarBtn");
-    const ocrForm = document.getElementById("ocrForm");
-    const preview = document.getElementById("preview");
-    const memoriaBtn = document.getElementById("verMemoria");
-    const memoriaOutput = document.getElementById("memoriaOutput");
+    const evalForm = document.getElementById("evalForm")
+    const ocrForm = document.getElementById("ocrForm")
+    const guardarForm = document.getElementById("guardarForm")
+    const memoriaForm = document.getElementById("memoriaForm")
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
+    evalForm.addEventListener("submit", async e => {
+      e.preventDefault()
       const data = {
-        alumno: form.alumno.value,
-        evaluacion: form.evaluacion.value,
-        rubrica: form.rubrica.value,
-      };
+        alumno: evalForm.alumno.value,
+        evaluacion: evalForm.evaluacion.value,
+        rubrica: evalForm.rubrica.value
+      }
       const res = await fetch("/evaluar", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const json = await res.json();
-      feedbackOutput.textContent = JSON.stringify(json, null, 2);
-    });
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(data)
+      })
+      document.getElementById("resultado").textContent = JSON.stringify(await res.json(), null, 2)
+    })
 
-    guardarBtn.addEventListener("click", async () => {
-      const evaluacion = feedbackOutput.textContent;
-      const res = await fetch("/guardar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ evaluacion }),
-      });
-      alert("Evaluación guardada");
-    });
-
-    ocrForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const formData = new FormData();
-      const file = document.getElementById("ocrImage").files[0];
-      if (!file) return;
-      preview.src = URL.createObjectURL(file);
-      formData.append("file", file);
-
+    ocrForm.addEventListener("submit", async e => {
+      e.preventDefault()
+      const formData = new FormData()
+      formData.append("file", ocrForm.imagen.files[0])
       const res = await fetch("/ocr", {
         method: "POST",
-        body: formData,
-      });
-      const json = await res.json();
-      alert("Texto extraído:\n" + JSON.stringify(json, null, 2));
-    });
+        body: formData
+      })
+      document.getElementById("ocrResultado").textContent = JSON.stringify(await res.json(), null, 2)
+    })
 
-    memoriaBtn.addEventListener("click", async () => {
-      const alumno = document.getElementById("memoriaAlumno").value;
-      const res = await fetch(`/memoria/${alumno}`);
-      const json = await res.json();
-      memoriaOutput.textContent = JSON.stringify(json, null, 2);
-    });
+    guardarForm.addEventListener("submit", async e => {
+      e.preventDefault()
+      const res = await fetch("/guardar", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: guardarForm.json.value
+      })
+      document.getElementById("guardarStatus").textContent = JSON.stringify(await res.json(), null, 2)
+    })
+
+    memoriaForm.addEventListener("submit", async e => {
+      e.preventDefault()
+      const alumno = memoriaForm.memAlumno.value
+      const res = await fetch(`/memoria/${alumno}`)
+      document.getElementById("memoriaResultado").textContent = JSON.stringify(await res.json(), null, 2)
+    })
   </script>
 </body>
 </html>
