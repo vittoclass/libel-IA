@@ -4,6 +4,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import httpx, os
 
+# Debug: Verifica si las variables están presentes
+print("DEBUG - MISTRAL_API_KEY:", os.getenv("MISTRAL_API_KEY"))
+print("DEBUG - AZURE_VISION_KEY:", os.getenv("AZURE_VISION_KEY"))
+print("DEBUG - AZURE_VISION_ENDPOINT:", os.getenv("AZURE_VISION_ENDPOINT"))
+
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -18,8 +23,12 @@ class Evaluacion(BaseModel):
 
 @app.post("/evaluar")
 async def evaluar(data: Evaluacion):
+    mistral_key = os.getenv("MISTRAL_API_KEY")
+    if not mistral_key:
+        return JSONResponse(content={"error": "Clave MISTRAL_API_KEY no definida"}, status_code=500)
+
     prompt = f"""EVALUACIÓN IA\n\nAlumno: {data.alumno}\nRúbrica: {data.rubrica}\nTexto del estudiante: {data.evaluacion}\n\nResponde con feedback, puntaje y análisis en JSON"""
-    headers = {"Authorization": f"Bearer {os.getenv('MISTRAL_API_KEY')}"}
+    headers = {"Authorization": f"Bearer {mistral_key}"}
     body = {
         "model": "mistral-large-latest",
         "messages": [{"role": "user", "content": prompt}],
@@ -41,6 +50,7 @@ async def guardar(data: dict):
 async def ocr(file: UploadFile = File(...)):
     azure_key = os.getenv("AZURE_VISION_KEY")
     azure_endpoint = os.getenv("AZURE_VISION_ENDPOINT")
+    
     if not azure_key or not azure_endpoint:
         return JSONResponse(content={"error": "Faltan claves de Azure"}, status_code=500)
 
