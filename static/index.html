@@ -2,124 +2,142 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Genius Evaluator X</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #0f172a;
-      color: #f1f5f9;
-      padding: 20px;
+      background-color: #f4f6f9;
+      padding: 2rem;
     }
-    h1 {
-      color: #38bdf8;
-    }
-    label {
-      display: block;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    input, textarea, select {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      background-color: #1e293b;
-      color: #f1f5f9;
-      border: 1px solid #475569;
-    }
-    button {
-      margin-top: 15px;
-      padding: 10px 20px;
-      background-color: #38bdf8;
-      color: #0f172a;
-      border: none;
-      cursor: pointer;
-    }
-    .card {
-      background-color: #1e293b;
-      padding: 15px;
-      margin-top: 20px;
+    .container {
+      background: white;
+      padding: 2rem;
       border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+    .feedback-area, .historial-area, .proceso-area {
+      margin-top: 2rem;
+    }
+    .preview-image {
+      max-width: 100%;
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
-  <h1>📘 Genius Evaluator X</h1>
+  <div class="container">
+    <h1 class="text-center mb-4">Genius Evaluator X 📚🤖</h1>
 
-  <div class="card">
-    <h2>📄 Evaluar Texto</h2>
-    <form id="textForm">
-      <label>Nombre del Estudiante:</label>
-      <input type="text" id="alumno" required />
-
-      <label>Curso:</label>
-      <input type="text" id="curso" required />
-
-      <label>Fecha:</label>
-      <input type="date" id="fecha" required />
-
-      <label>Texto del Estudiante:</label>
-      <textarea id="evaluacion" rows="6" required></textarea>
-
-      <label>Rúbrica:</label>
-      <textarea id="rubrica" rows="4">Claridad, contenido, ortografía, creatividad.</textarea>
-
-      <button type="submit">✅ Evaluar</button>
+    <!-- Evaluación de texto -->
+    <form id="evaluacionForm">
+      <h4>📄 Evaluar Texto del Estudiante</h4>
+      <div class="mb-3">
+        <label for="alumno" class="form-label">Alumno:</label>
+        <input type="text" id="alumno" name="alumno" class="form-control" required />
+      </div>
+      <div class="mb-3">
+        <label for="evaluacion" class="form-label">Texto del estudiante:</label>
+        <textarea id="evaluacion" name="evaluacion" class="form-control" rows="4" required></textarea>
+      </div>
+      <div class="mb-3">
+        <label for="rubrica" class="form-label">Rúbrica:</label>
+        <textarea id="rubrica" name="rubrica" class="form-control" rows="3" required></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">Enviar a Evaluar</button>
     </form>
 
-    <pre id="resultadoEvaluacion"></pre>
-  </div>
+    <div class="feedback-area">
+      <h4>🧠 Feedback Generado:</h4>
+      <pre id="feedbackOutput" class="bg-light p-3 rounded"></pre>
+      <button id="guardarBtn" class="btn btn-success mt-2">Guardar Evaluación</button>
+    </div>
 
-  <div class="card">
-    <h2>🖼️ Subir Imagen para OCR</h2>
-    <form id="imageForm" enctype="multipart/form-data">
-      <input type="file" id="imageInput" accept="image/*" required />
-      <button type="submit">📸 Enviar Imagen</button>
+    <!-- OCR con imagen -->
+    <form id="ocrForm" class="mt-5">
+      <h4>🖼️ Extraer texto de imagen (OCR)</h4>
+      <input type="file" id="ocrImage" name="file" class="form-control" accept="image/*" required />
+      <button type="submit" class="btn btn-secondary mt-2">Extraer Texto</button>
+      <img id="preview" class="preview-image" />
     </form>
-    <div id="ocrResultado"></div>
-  </div>
 
-  <div class="card">
-    <h2>📂 Evaluaciones en Proceso</h2>
-    <p>(Este módulo mostrará trabajos guardados por estudiante, curso y fecha.)</p>
-  </div>
+    <!-- Evaluaciones en Proceso -->
+    <div class="proceso-area">
+      <h4>📂 Evaluaciones en Proceso</h4>
+      <div id="procesosList">(Aún no implementado)</div>
+    </div>
 
-  <div class="card">
-    <h2>📤 Exportar Informes</h2>
-    <button onclick="alert('Exportar a PDF próximamente')">📄 Exportar PDF</button>
-    <button onclick="alert('Exportar a Word próximamente')">📝 Exportar Word</button>
+    <!-- Historial -->
+    <div class="historial-area">
+      <h4>📁 Historial del Estudiante</h4>
+      <input type="text" id="memoriaAlumno" placeholder="Nombre del alumno" class="form-control mb-2" />
+      <button id="verMemoria" class="btn btn-info">Ver Memoria</button>
+      <pre id="memoriaOutput" class="bg-light p-3 rounded mt-2"></pre>
+    </div>
+
+    <!-- Exportación -->
+    <div class="mt-4">
+      <button class="btn btn-outline-primary">Exportar a PDF</button>
+      <button class="btn btn-outline-secondary">Exportar a Word</button>
+    </div>
   </div>
 
   <script>
-    document.getElementById('textForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const alumno = document.getElementById('alumno').value;
-      const evaluacion = document.getElementById('evaluacion').value;
-      const rubrica = document.getElementById('rubrica').value;
+    const form = document.getElementById("evaluacionForm");
+    const feedbackOutput = document.getElementById("feedbackOutput");
+    const guardarBtn = document.getElementById("guardarBtn");
+    const ocrForm = document.getElementById("ocrForm");
+    const preview = document.getElementById("preview");
+    const memoriaBtn = document.getElementById("verMemoria");
+    const memoriaOutput = document.getElementById("memoriaOutput");
 
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const data = {
+        alumno: form.alumno.value,
+        evaluacion: form.evaluacion.value,
+        rubrica: form.rubrica.value,
+      };
       const res = await fetch("/evaluar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ alumno, evaluacion, rubrica })
+        body: JSON.stringify(data),
       });
-
-      const data = await res.json();
-      document.getElementById('resultadoEvaluacion').textContent = JSON.stringify(data, null, 2);
+      const json = await res.json();
+      feedbackOutput.textContent = JSON.stringify(json, null, 2);
     });
 
-    document.getElementById('imageForm').addEventListener('submit', async (e) => {
+    guardarBtn.addEventListener("click", async () => {
+      const evaluacion = feedbackOutput.textContent;
+      const res = await fetch("/guardar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ evaluacion }),
+      });
+      alert("Evaluación guardada");
+    });
+
+    ocrForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const input = document.getElementById('imageInput');
       const formData = new FormData();
-      formData.append("file", input.files[0]);
+      const file = document.getElementById("ocrImage").files[0];
+      if (!file) return;
+      preview.src = URL.createObjectURL(file);
+      formData.append("file", file);
 
       const res = await fetch("/ocr", {
         method: "POST",
-        body: formData
+        body: formData,
       });
+      const json = await res.json();
+      alert("Texto extraído:\n" + JSON.stringify(json, null, 2));
+    });
 
-      const data = await res.json();
-      document.getElementById('ocrResultado').textContent = JSON.stringify(data, null, 2);
+    memoriaBtn.addEventListener("click", async () => {
+      const alumno = document.getElementById("memoriaAlumno").value;
+      const res = await fetch(`/memoria/${alumno}`);
+      const json = await res.json();
+      memoriaOutput.textContent = JSON.stringify(json, null, 2);
     });
   </script>
 </body>
