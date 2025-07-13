@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>🧠 Genius Evaluator X</title>
+</head>
+<body>
+  <h1>🧠 Evaluador Educativo IA</h1>
+
+  <h2>📄 Evaluar Texto del Estudiante</h2>
+  <form id="evaluar-form">
+    <label>Alumno:</label><br />
+    <input type="text" id="alumno" required /><br />
+    <label>Texto del estudiante:</label><br />
+    <textarea id="evaluacion" rows="4" cols="50" required></textarea><br />
+    <label>Rúbrica:</label><br />
+    <textarea id="rubrica" rows="4" cols="50" required></textarea><br />
+    <button type="submit">Enviar a Evaluar</button>
+  </form>
+  <pre id="resultado"></pre>
+
+  <h2>🖼️ Extraer texto de imagen (OCR)</h2>
+  <form id="ocr-form" enctype="multipart/form-data">
+    <input type="file" id="imagen" accept="image/*" required />
+    <button type="submit">Subir Imagen</button>
+  </form>
+  <pre id="ocr-texto"></pre>
+
+  <script>
+    document.getElementById("evaluar-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const alumno = document.getElementById("alumno").value;
+      const evaluacion = document.getElementById("evaluacion").value;
+      const rubrica = document.getElementById("rubrica").value;
+
+      const res = await fetch("/evaluar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ alumno, evaluacion, rubrica }),
+      });
+
+      const data = await res.json();
+      document.getElementById("resultado").textContent = JSON.stringify(data, null, 2);
+    });
+
+    document.getElementById("ocr-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      const fileInput = document.getElementById("imagen");
+      formData.append("file", fileInput.files[0]);
+
+      const res = await fetch("/ocr", { method: "POST", body: formData });
+      const data = await res.json();
+      document.getElementById("ocr-texto").textContent = JSON.stringify(data, null, 2);
+    });
+  </script>
+</body>
+</html>
