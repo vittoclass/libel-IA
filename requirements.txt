@@ -4,5 +4,5 @@ httpx
 pydantic
 python-dotenv
 sqlalchemy
-supabase
+supabase-py
 python-multipart

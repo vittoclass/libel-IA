@@ -1,169 +1,1395 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Evaluador Educativo IA - LibelIA</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      background: #4b0082;
-      color: #fff;
-      padding: 1em;
-      text-align: center;
-    }
-    main {
-      padding: 2em;
-      max-width: 800px;
-      margin: auto;
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    h2 {
-      color: #4b0082;
-    }
-    label {
-      display: block;
-      margin: 0.5em 0 0.2em;
-    }
-    input, textarea, select, button {
-      width: 100%;
-      padding: 0.7em;
-      margin-bottom: 1em;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background: #4b0082;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #360062;
-    }
-    .output {
-      background: #eef;
-      padding: 1em;
-      border-radius: 5px;
-      margin-top: 1em;
-    }
-    .flex-row {
-      display: flex;
-      gap: 1em;
-      flex-wrap: wrap;
-    }
-    .half {
-      flex: 1 1 48%;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluador Educativo IA - LibelIA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4b0082; /* Morado Intenso */
+            --secondary-color: #6a0dad; /* Morado un poco más claro */
+            --accent-color: #ff6347; /* Rojo Tomate para acentos */
+            --text-color: #333;
+            --bg-light: #f8f8f8;
+            --bg-medium: #eef;
+            --border-color: #ddd;
+            --shadow-light: rgba(0,0,0,0.05);
+            --shadow-medium: rgba(0,0,0,0.1);
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg-light);
+            margin: 0;
+            padding: 0;
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        header {
+            background: var(--primary-color);
+            color: #fff;
+            padding: 1.5em 0;
+            text-align: center;
+            box-shadow: 0 2px 10px var(--shadow-medium);
+        }
+        header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            letter-spacing: 1px;
+        }
+        main {
+            padding: 2em;
+            max-width: 1000px;
+            margin: 2em auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 0 20px var(--shadow-medium);
+        }
+        h2 {
+            color: var(--primary-color);
+            font-size: 1.8em;
+            margin-bottom: 1em;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5em;
+        }
+        label {
+            display: block;
+            margin: 0.8em 0 0.4em;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+        input[type="text"],
+        input[type="number"],
+        textarea,
+        select {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 1em;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-family: 'Poppins', sans-serif;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        textarea:focus,
+        select:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+        }
+        button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.9em 1.5em;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: background 0.3s ease, transform 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        button:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .output {
+            background: var(--bg-medium);
+            padding: 1.2em;
+            border-radius: 8px;
+            margin-top: 1.5em;
+            border: 1px solid var(--border-color);
+            white-space: pre-wrap; /* Para JSON formateado */
+            word-wrap: break-word;
+            font-family: 'monospace';
+            font-size: 0.9em;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .flex-row {
+            display: flex;
+            gap: 2em;
+            flex-wrap: wrap;
+        }
+        .half {
+            flex: 1 1 calc(50% - 1em);
+        }
+        .full-width {
+            width: 100%;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            margin-bottom: 2em;
+            border-bottom: 2px solid var(--border-color);
+        }
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 1em 1.5em;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--text-color);
+            transition: color 0.3s ease, border-bottom 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-button.active {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Modal */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 2em;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .alert {
+            padding: 1em;
+            margin-bottom: 1em;
+            border-radius: 8px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        /* Drag and Drop Area */
+        .drop-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 2em;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 1em;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        .drop-area.highlight {
+            background-color: #e0ffe0;
+            border-color: var(--primary-color);
+        }
+        .drop-area i {
+            font-size: 3em;
+            color: var(--secondary-color);
+            margin-bottom: 0.5em;
+        }
+        .file-list {
+            margin-top: 1em;
+            border-top: 1px solid var(--border-color);
+            padding-top: 1em;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5em 0;
+            border-bottom: 1px dashed #eee;
+        }
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        .file-item .file-name {
+            font-weight: 600;
+        }
+        .file-item .file-actions button {
+            background: none;
+            color: var(--accent-color);
+            border: none;
+            padding: 0.3em 0.5em;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+        .file-item .file-actions button:hover {
+            text-decoration: underline;
+        }
+
+        /* Camera */
+        #camera-feed {
+            width: 100%;
+            height: 300px;
+            background: #000;
+            border-radius: 8px;
+            margin-bottom: 1em;
+            object-fit: cover;
+        }
+        #camera-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1em;
+            margin-bottom: 1em;
+        }
+        #camera-controls button {
+            flex: 1;
+        }
+        #photo-preview {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-top: 1em;
+            display: block;
+        }
+
+        /* Historial */
+        .historial-item {
+            background: var(--bg-medium);
+            padding: 1em;
+            border-radius: 8px;
+            margin-bottom: 1em;
+            border: 1px solid var(--border-color);
+        }
+        .historial-item h3 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 0.5em;
+        }
+        .historial-item p {
+            margin-bottom: 0.3em;
+        }
+        .historial-item .actions {
+            margin-top: 1em;
+            display: flex;
+            gap: 0.5em;
+        }
+        .historial-item .actions button {
+            padding: 0.5em 1em;
+            font-size: 0.9em;
+        }
+
+        /* Gráficos */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            margin-bottom: 2em;
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <h1>📚 Evaluador Educativo IA - LibelIA</h1>
-  </header>
-  <main>
-    <section>
-      <h2>Evaluar Texto del Estudiante</h2>
-      <form id="evalForm">
-        <label for="alumno">Nombre del estudiante:</label>
-        <input type="text" id="alumno" name="alumno" required>
+    <header>
+        <h1>📚 Evaluador Educativo IA - LibelIA</h1>
+    </header>
+    <main>
+        <div class="tabs">
+            <button class="tab-button active" data-tab="eval-section"><i class="fas fa-edit"></i> Evaluar</button>
+            <button class="tab-button" data-tab="history-section"><i class="fas fa-history"></i> Historial</button>
+            <button class="tab-button" data-tab="analysis-section"><i class="fas fa-chart-line"></i> Análisis</button>
+            <button class="tab-button" data-tab="settings-section"><i class="fas fa-cog"></i> Configuración</button>
+        </div>
 
-        <label for="evaluacion">Texto del estudiante:</label>
-        <textarea id="evaluacion" name="evaluacion" rows="5" required></textarea>
+        <section id="eval-section" class="tab-content active">
+            <h2>Evaluar Texto del Estudiante</h2>
+            <form id="evalForm">
+                <label for="alumno">Nombre del estudiante:</label>
+                <input type="text" id="alumno" name="alumno" required>
 
-        <label for="rubrica">Rúbrica (criterios de evaluación):</label>
-        <textarea id="rubrica" name="rubrica" rows="3" required></textarea>
+                <label for="curso">Curso/Asignatura:</label>
+                <input type="text" id="curso" name="curso" placeholder="Ej: 5° Básico Lenguaje, Historia 2° Medio" required>
 
-        <button type="submit">📩 Enviar a Evaluar</button>
-      </form>
-      <div id="resultado" class="output"></div>
-    </section>
+                <label for="nombrePrueba">Nombre de la Prueba/Actividad:</label>
+                <input type="text" id="nombrePrueba" name="nombrePrueba" placeholder="Ej: Ensayo Simce, Informe de Investigación" required>
 
-    <section>
-      <h2>📷 Extraer Texto desde Imagen (OCR)</h2>
-      <form id="ocrForm">
-        <input type="file" id="imagen" name="imagen" accept="image/*" required>
-        <button type="submit">📤 Subir Imagen</button>
-      </form>
-      <div id="ocrResultado" class="output"></div>
-    </section>
+                <label for="evaluacion">Texto del estudiante:</label>
+                <textarea id="evaluacion" name="evaluacion" rows="8" placeholder="Pega aquí el texto del estudiante o usa la sección de OCR." required></textarea>
 
-    <section>
-      <h2>📝 Evaluaciones Guardadas (Demo)</h2>
-      <form id="guardarForm">
-        <label for="json">JSON del resultado IA:</label>
-        <textarea id="json" name="json" rows="4" placeholder="Pegue aquí el JSON del resultado..." required></textarea>
-        <button type="submit">💾 Guardar</button>
-      </form>
-      <div id="guardarStatus" class="output"></div>
-    </section>
+                <label for="rubrica">Rúbrica (criterios de evaluación):</label>
+                <textarea id="rubrica" name="rubrica" rows="5" placeholder="Define los criterios de evaluación. Ej: 'Claridad (0-3), Coherencia (0-3), Argumentación (0-4)'" required></textarea>
 
-    <section>
-      <h2>🔎 Buscar Memoria por Estudiante</h2>
-      <form id="memoriaForm">
-        <label for="memAlumno">Nombre del estudiante:</label>
-        <input type="text" id="memAlumno" name="memAlumno" required>
-        <button type="submit">🔍 Buscar</button>
-      </form>
-      <div id="memoriaResultado" class="output"></div>
-    </section>
-  </main>
+                <div class="flex-row">
+                    <div class="half">
+                        <label for="flexibilidadIA">Flexibilidad de la IA (0-10): <span id="flexibilidadValue">5</span></label>
+                        <input type="range" id="flexibilidadIA" name="flexibilidadIA" min="0" max="10" value="5">
+                        <small>0 = Muy estricta, 10 = Muy flexible en la evaluación.</small>
+                    </div>
+                    <div class="half">
+                        <label for="notaMinima">Nota Mínima Garantizada (1.0 - 7.0):</label>
+                        <input type="number" id="notaMinima" name="notaMinima" min="1.0" max="7.0" step="0.1" value="4.0">
+                        <small>La IA no asignará una nota menor a esta.</small>
+                    </div>
+                </div>
+                <div class="alert alert-warning" id="notaMinimaWarning" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Advertencia: La nota mínima garantizada es superior a la nota calculada por la IA. Se aplicará la nota mínima.
+                </div>
+                <div class="alert alert-warning" id="notaMinimaOverrideWarning" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Para aplicar una nota mínima inferior a 4.0, por favor, introduce "CONFIRMAR" en el campo de texto.
+                    <input type="text" id="notaMinimaOverrideConfirm" placeholder="CONFIRMAR">
+                </div>
 
-  <script>
-    const evalForm = document.getElementById("evalForm")
-    const ocrForm = document.getElementById("ocrForm")
-    const guardarForm = document.getElementById("guardarForm")
-    const memoriaForm = document.getElementById("memoriaForm")
 
-    evalForm.addEventListener("submit", async e => {
-      e.preventDefault()
-      const data = {
-        alumno: evalForm.alumno.value,
-        evaluacion: evalForm.evaluacion.value,
-        rubrica: evalForm.rubrica.value
-      }
-      const res = await fetch("/evaluar", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(data)
-      })
-      document.getElementById("resultado").textContent = JSON.stringify(await res.json(), null, 2)
-    })
+                <button type="submit"><i class="fas fa-paper-plane"></i> Enviar a Evaluar</button>
+            </form>
+            <div id="resultado" class="output"></div>
 
-    ocrForm.addEventListener("submit", async e => {
-      e.preventDefault()
-      const formData = new FormData()
-      formData.append("file", ocrForm.imagen.files[0])
-      const res = await fetch("/ocr", {
-        method: "POST",
-        body: formData
-      })
-      document.getElementById("ocrResultado").textContent = JSON.stringify(await res.json(), null, 2)
-    })
+            <section style="margin-top: 3em;">
+                <h2>📷 Extraer Texto desde Imagen/Documento (OCR)</h2>
+                <div class="drop-area" id="drop-area">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Arrastra y suelta imágenes o documentos aquí, o haz clic para seleccionar.</p>
+                    <input type="file" id="imagenDocumento" name="imagenDocumento" accept="image/*,.pdf,.docx" multiple hidden>
+                    <button type="button" id="selectFileButton"><i class="fas fa-folder-open"></i> Seleccionar Archivos</button>
+                </div>
+                <div id="camera-section" style="margin-top: 1.5em;">
+                    <h3><i class="fas fa-camera"></i> Capturar desde Cámara</h3>
+                    <video id="camera-feed" autoplay playsinline></video>
+                    <div id="camera-controls">
+                        <button id="start-camera"><i class="fas fa-video"></i> Iniciar Cámara</button>
+                        <button id="take-photo" disabled><i class="fas fa-camera"></i> Tomar Foto</button>
+                        <button id="stop-camera" disabled><i class="fas fa-stop-circle"></i> Detener Cámara</button>
+                    </div>
+                    <canvas id="camera-canvas" style="display: none;"></canvas>
+                    <img id="photo-preview" src="" alt="Previsualización de foto" style="display: none;">
+                    <div class="alert alert-info" id="imageQualityMessage" style="display: none;"></div>
+                </div>
+                <div id="file-list" class="file-list">
+                    <h4>Archivos Cargados:</h4>
+                    <ul id="uploaded-files-ul"></ul>
+                </div>
+                <button id="processScannedFiles" disabled><i class="fas fa-cogs"></i> Procesar Archivos Escaneados</button>
+                <div id="ocrResultado" class="output"></div>
+            </section>
 
-    guardarForm.addEventListener("submit", async e => {
-      e.preventDefault()
-      const res = await fetch("/guardar", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: guardarForm.json.value
-      })
-      document.getElementById("guardarStatus").textContent = JSON.stringify(await res.json(), null, 2)
-    })
+            <section style="margin-top: 3em;">
+                <h2>📝 Asistente IA para Rúbricas</h2>
+                <form id="rubricAssistantForm">
+                    <label for="rubricPrompt">Describe la rúbrica que necesitas o el tema:</label>
+                    <textarea id="rubricPrompt" rows="4" placeholder="Ej: 'Genera una rúbrica para un ensayo sobre la Revolución Francesa, con criterios de contenido, estructura y gramática, escala de 1 a 5.'"></textarea>
+                    <button type="submit"><i class="fas fa-magic"></i> Generar/Optimizar Rúbrica</button>
+                </form>
+                <div id="rubricAssistantOutput" class="output"></div>
+            </section>
+        </section>
 
-    memoriaForm.addEventListener("submit", async e => {
-      e.preventDefault()
-      const alumno = memoriaForm.memAlumno.value
-      const res = await fetch(`/memoria/${alumno}`)
-      document.getElementById("memoriaResultado").textContent = JSON.stringify(await res.json(), null, 2)
-    })
-  </script>
+        <section id="history-section" class="tab-content">
+            <h2>Historial de Evaluaciones</h2>
+            <div id="historialList">
+                <p>Cargando historial...</p>
+            </div>
+        </section>
+
+        <section id="analysis-section" class="tab-content">
+            <h2>Análisis y Portafolio de Evidencias</h2>
+            <div class="flex-row">
+                <div class="half">
+                    <label for="analysisStudentName">Nombre del Estudiante:</label>
+                    <input type="text" id="analysisStudentName" placeholder="Deja vacío para todos">
+                </div>
+                <div class="half">
+                    <label for="analysisCourseName">Curso/Asignatura:</label>
+                    <input type="text" id="analysisCourseName" placeholder="Deja vacío para todos">
+                </div>
+            </div>
+            <button id="filterAnalysis"><i class="fas fa-filter"></i> Filtrar Análisis</button>
+            <button id="generatePortfolio"><i class="fas fa-file-pdf"></i> Generar Portafolio de Evidencias (PDF)</button>
+
+            <div id="analysisResults" class="output" style="margin-top: 2em;">
+                <h3>Resumen de Notas</h3>
+                <div class="chart-container">
+                    <canvas id="gradesChart"></canvas>
+                </div>
+                <h3>Progreso por Criterio</h3>
+                <div class="chart-container">
+                    <canvas id="criteriaChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="settings-section" class="tab-content">
+            <h2><i class="fas fa-cog"></i> Configuración y Ajustes</h2>
+            <p>Aquí se podrían añadir futuras configuraciones globales de la aplicación.</p>
+            <section style="margin-top: 2em;">
+                <h3>Ajuste Manual de Notas</h3>
+                <p>Permite bonificar décimas a una evaluación existente. Esto se registrará en el historial.</p>
+                <label for="adjustEvalId">ID de Evaluación (del historial):</label>
+                <input type="text" id="adjustEvalId" placeholder="Ej: 1701010101010">
+                <label for="bonusPoints">Décimas a Bonificar (ej: 0.5 para media décima):</label>
+                <input type="number" id="bonusPoints" min="0" max="2.0" step="0.1" value="0.0">
+                <label for="bonusReason">Justificación de la bonificación:</label>
+                <textarea id="bonusReason" rows="2" placeholder="Ej: 'Participación destacada en clase', 'Mejora en la autoevaluación'"></textarea>
+                <button id="applyBonus"><i class="fas fa-plus-circle"></i> Aplicar Bonificación</button>
+                <div id="bonusStatus" class="output"></div>
+            </section>
+        </section>
+    </main>
+
+    <div id="notaMinimaModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Confirmar Nota Mínima</h2>
+            <p>La nota calculada por la IA es <strong id="iaCalculatedNote"></strong>, pero has establecido una nota mínima garantizada de <strong id="guaranteedNote"></strong>.</p>
+            <p>¿Estás seguro de que deseas aplicar la nota mínima garantizada?</p>
+            <button id="confirmNotaMinima"><i class="fas fa-check-circle"></i> Sí, aplicar nota mínima</button>
+            <button id="cancelNotaMinima" style="background-color: gray;"><i class="fas fa-times-circle"></i> No, usar nota de la IA</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.15/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Global state
+        let currentStream;
+        let photoTakenBlob = null;
+        let processedFiles = {}; // Para almacenar el texto extraído de los archivos escaneados
+        let evaluationsHistory = []; // Array para almacenar el historial de evaluaciones
+        let currentEvaluationData = null; // Para guardar la última evaluación procesada
+        let chartInstances = {}; // Para gestionar instancias de Chart.js
+
+        // DOM Elements
+        const evalForm = document.getElementById("evalForm");
+        const resultadoDiv = document.getElementById("resultado");
+        const ocrResultadoDiv = document.getElementById("ocrResultado");
+        const dropArea = document.getElementById("drop-area");
+        const imagenDocumentoInput = document.getElementById("imagenDocumento");
+        const selectFileButton = document.getElementById("selectFileButton");
+        const uploadedFilesUl = document.getElementById("uploaded-files-ul");
+        const processScannedFilesButton = document.getElementById("processScannedFiles");
+        const cameraFeed = document.getElementById("camera-feed");
+        const startCameraButton = document.getElementById("start-camera");
+        const takePhotoButton = document.getElementById("take-photo");
+        const stopCameraButton = document.getElementById("stop-camera");
+        const cameraCanvas = document.getElementById("camera-canvas");
+        const photoPreview = document.getElementById("photo-preview");
+        const imageQualityMessage = document.getElementById("imageQualityMessage");
+        const notaMinimaInput = document.getElementById("notaMinima");
+        const notaMinimaWarning = document.getElementById("notaMinimaWarning");
+        const notaMinimaOverrideWarning = document.getElementById("notaMinimaOverrideWarning");
+        const notaMinimaOverrideConfirmInput = document.getElementById("notaMinimaOverrideConfirm");
+        const flexibilidadIAInput = document.getElementById("flexibilidadIA");
+        const flexibilidadValueSpan = document.getElementById("flexibilidadValue");
+        const notaMinimaModal = document.getElementById("notaMinimaModal");
+        const iaCalculatedNoteSpan = document.getElementById("iaCalculatedNote");
+        const guaranteedNoteSpan = document.getElementById("guaranteedNote");
+        const confirmNotaMinimaButton = document.getElementById("confirmNotaMinima");
+        const cancelNotaMinimaButton = document.getElementById("cancelNotaMinima");
+        const historialListDiv = document.getElementById("historialList");
+        const rubricAssistantForm = document.getElementById("rubricAssistantForm");
+        const rubricAssistantOutput = document.getElementById("rubricAssistantOutput");
+        const analysisStudentNameInput = document.getElementById("analysisStudentName");
+        const analysisCourseNameInput = document.getElementById("analysisCourseName");
+        const filterAnalysisButton = document.getElementById("filterAnalysis");
+        const generatePortfolioButton = document.getElementById("generatePortfolio");
+        const gradesChartCanvas = document.getElementById("gradesChart");
+        const criteriaChartCanvas = document.getElementById("criteriaChart");
+        const adjustEvalIdInput = document.getElementById("adjustEvalId");
+        const bonusPointsInput = document.getElementById("bonusPoints");
+        const bonusReasonTextarea = document.getElementById("bonusReason");
+        const applyBonusButton = document.getElementById("applyBonus");
+        const bonusStatusDiv = document.getElementById("bonusStatus");
+
+
+        // --- Tab Navigation ---
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+                button.classList.add('active');
+                document.getElementById(button.dataset.tab).classList.add('active');
+
+                // Reload history or analysis charts when tab is activated
+                if (button.dataset.tab === 'history-section') {
+                    loadEvaluationsHistory();
+                } else if (button.dataset.tab === 'analysis-section') {
+                    renderAnalysisCharts();
+                }
+            });
+        });
+
+        // --- API Key Management (REMOVED AS PER USER REQUEST - MANAGED BY BACKEND) ---
+
+        // --- Form Evaluation ---
+        flexibilidadIAInput.addEventListener("input", () => {
+            flexibilidadValueSpan.textContent = flexibilidadIAInput.value;
+        });
+
+        notaMinimaInput.addEventListener("input", () => {
+            const notaMinima = parseFloat(notaMinimaInput.value);
+            if (notaMinima < 4.0) {
+                notaMinimaOverrideWarning.style.display = 'block';
+            } else {
+                notaMinimaOverrideWarning.style.display = 'none';
+                notaMinimaOverrideConfirmInput.value = ''; // Clear confirmation if above 4.0
+            }
+        });
+
+        evalForm.addEventListener("submit", async e => {
+            e.preventDefault();
+            resultadoDiv.textContent = "Evaluando...";
+            notaMinimaWarning.style.display = 'none';
+
+            const alumno = evalForm.alumno.value;
+            const evaluacion = evalForm.evaluacion.value;
+            const rubrica = evalForm.rubrica.value;
+            const curso = evalForm.curso.value;
+            const nombrePrueba = evalForm.nombrePrueba.value;
+            const flexibilidadIA = flexibilidadIAInput.value;
+            let notaMinima = parseFloat(notaMinimaInput.value);
+
+            if (notaMinima < 4.0 && notaMinimaOverrideConfirmInput.value !== "CONFIRMAR") {
+                resultadoDiv.textContent = "Error: Debes escribir 'CONFIRMAR' para aplicar una nota mínima inferior a 4.0.";
+                notaMinimaOverrideWarning.style.display = 'block';
+                return;
+            }
+
+            // Conciencia pedagógica contextual
+            let contextPrompt = "";
+            if (curso.toLowerCase().includes("diferenciada") || nombrePrueba.toLowerCase().includes("diferenciada") ||
+                curso.toLowerCase().includes("pie") || nombrePrueba.toLowerCase().includes("pie") ||
+                curso.toLowerCase().includes("adecuación") || nombrePrueba.toLowerCase().includes("adecuación")) {
+                contextPrompt = "Considera que esta es una evaluación diferenciada o con adecuación curricular. Sé más empático y enfócate en el progreso y el esfuerzo, no solo en el resultado final. Ajusta tu lenguaje para ser alentador y constructivo.";
+            } else if (curso.toLowerCase().includes("superior") || curso.toLowerCase().includes("universidad") ||
+                       nombrePrueba.toLowerCase().includes("tesis") || nombrePrueba.toLowerCase().includes("investigación avanzada")) {
+                contextPrompt = "Considera que esta es una evaluación de nivel superior. Espera un análisis crítico profundo, argumentación sólida y un lenguaje académico. Sé riguroso en tu feedback.";
+            } else if (curso.toLowerCase().includes("inicial") || curso.toLowerCase().includes("prekinder") ||
+                       curso.toLowerCase().includes("kinder") || nombrePrueba.toLowerCase().includes("juego") ||
+                       nombrePrueba.toLowerCase().includes("actividad lúdica")) {
+                contextPrompt = "Considera que esta es una evaluación para educación inicial. Enfócate en el desarrollo de habilidades básicas, la participación y la creatividad. Usa un lenguaje muy simple y positivo.";
+            }
+
+            const fullPrompt = `Eres un evaluador pedagógico IA llamado LibelIA. Tu objetivo es evaluar el texto de un estudiante de forma justa, constructiva y empática, siguiendo una rúbrica específica.
+            Flexibilidad de la IA en la evaluación (0=estricta, 10=flexible): ${flexibilidadIA}. Ajusta tu rigor según este valor.
+
+            ${contextPrompt}
+
+            EVALUACIÓN SOLICITADA:
+            Alumno: ${alumno}
+            Curso/Asignatura: ${curso}
+            Nombre de la Prueba/Actividad: ${nombrePrueba}
+            Rúbrica: ${rubrica}
+            Texto del estudiante: ${evaluacion}
+
+            Por favor, proporciona tu feedback, un puntaje claro (ej: 5.5/7.0 o 65/100 si la rúbrica lo permite, o la nota chilena de 1.0 a 7.0 si se puede inferir de la rúbrica, o solo el puntaje si la rúbrica no da una escala clara), y un análisis detallado en formato JSON. El JSON debe tener las siguientes claves:
+            {
+                "feedback_general": "Tu feedback constructivo y empático.",
+                "analisis_por_criterio": {
+                    "Criterio 1": "Análisis y puntaje para el criterio 1",
+                    "Criterio 2": "Análisis y puntaje para el criterio 2"
+                    // ... y así sucesivamente para cada criterio de la rúbrica
+                },
+                "puntaje_calculado_ia": "Puntaje numérico calculado por la IA (ej: 5.8, 65, etc.)",
+                "escala_puntaje": "La escala total de la rúbrica (ej: 7.0, 100, etc.)",
+                "nota_sugerida_ia": "La nota sugerida por la IA en escala 1.0 a 7.0 (si es aplicable y se puede inferir del puntaje y escala)",
+                "sugerencias_mejora": ["Sugerencia 1", "Sugerencia 2"],
+                "puntos_fuertes": ["Punto fuerte 1", "Punto fuerte 2"]
+            }
+            Asegúrate de que el JSON sea válido y completo.`;
+
+
+            const dataToSend = {
+                alumno: alumno,
+                evaluacion: evaluacion,
+                rubrica: rubrica,
+                curso: curso,
+                nombrePrueba: nombrePrueba,
+                flexibilidadIA: flexibilidadIA,
+                notaMinima: notaMinima,
+                prompt: fullPrompt // Enviamos el prompt completo al backend
+            };
+
+            try {
+                const res = await fetch("/evaluar", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(dataToSend)
+                });
+
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+                }
+
+                const result = await res.json();
+                let iaResult = result.choices[0].message.content;
+
+                // Intentar parsear el JSON de la IA
+                let parsedIaResult;
+                try {
+                    parsedIaResult = JSON.parse(iaResult);
+                } catch (jsonError) {
+                    resultadoDiv.textContent = `Error al parsear JSON de la IA: ${jsonError.message}\n\nRespuesta cruda de la IA:\n${iaResult}`;
+                    console.error("Error al parsear JSON de la IA:", jsonError);
+                    return;
+                }
+
+                let finalNote = parsedIaResult.nota_sugerida_ia;
+                const iaCalculatedNoteVal = parseFloat(parsedIaResult.nota_sugerida_ia);
+
+                if (iaCalculatedNoteVal < notaMinima) {
+                    iaCalculatedNoteSpan.textContent = iaCalculatedNoteVal.toFixed(1);
+                    guaranteedNoteSpan.textContent = notaMinima.toFixed(1);
+                    notaMinimaModal.style.display = 'flex'; // Show modal
+
+                    // Wait for user interaction with modal
+                    const userConfirmed = await new Promise(resolve => {
+                        confirmNotaMinimaButton.onclick = () => {
+                            notaMinimaModal.style.display = 'none';
+                            resolve(true);
+                        };
+                        cancelNotaMinimaButton.onclick = () => {
+                            notaMinimaModal.style.display = 'none';
+                            resolve(false);
+                        };
+                        // Close button in modal
+                        notaMinimaModal.querySelector('.close-button').onclick = () => {
+                            notaMinimaModal.style.display = 'none';
+                            resolve(false);
+                        };
+                    });
+
+                    if (userConfirmed) {
+                        finalNote = notaMinima;
+                        notaMinimaWarning.style.display = 'block';
+                    } else {
+                        finalNote = iaCalculatedNoteVal;
+                        notaMinimaWarning.style.display = 'none'; // Ensure warning is hidden if user cancels
+                    }
+                } else {
+                    notaMinimaWarning.style.display = 'none';
+                }
+
+                // Add the final note to the parsed result
+                parsedIaResult.nota_final_aplicada = finalNote;
+                parsedIaResult.timestamp = Date.now(); // Add timestamp for history
+                parsedIaResult.id = parsedIaResult.timestamp; // Simple ID for now
+
+                currentEvaluationData = parsedIaResult; // Store for saving
+
+                resultadoDiv.textContent = JSON.stringify(parsedIaResult, null, 2);
+                saveEvaluationToHistory(parsedIaResult); // Save to local storage
+
+            } catch (error) {
+                resultadoDiv.textContent = `Error al evaluar: ${error.message}`;
+                console.error("Error en la evaluación:", error);
+            }
+        });
+
+        // --- OCR and File Handling ---
+        imagenDocumentoInput.addEventListener("change", (e) => {
+            handleScannedFiles(e.target.files);
+        });
+
+        selectFileButton.addEventListener("click", () => {
+            imagenDocumentoInput.click();
+        });
+
+        dropArea.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropArea.classList.add("highlight");
+        });
+
+        dropArea.addEventListener("dragleave", () => {
+            dropArea.classList.remove("highlight");
+        });
+
+        dropArea.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropArea.classList.remove("highlight");
+            handleScannedFiles(e.dataTransfer.files);
+        });
+
+        function handleScannedFiles(files) {
+            uploadedFilesUl.innerHTML = ''; // Clear previous list
+            processedFiles = {}; // Clear previous processed files
+
+            if (files.length === 0) {
+                processScannedFilesButton.disabled = true;
+                return;
+            }
+
+            let allFilesValid = true;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                const fileId = `${file.name}_${Date.now()}`; // Unique ID for the file
+
+                const listItem = document.createElement("li");
+                listItem.className = "file-item";
+                listItem.innerHTML = `
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-status">Cargando...</span>
+                    <div class="file-actions">
+                        <button data-id="${fileId}" class="remove-file-button">X</button>
+                    </div>
+                `;
+                uploadedFilesUl.appendChild(listItem);
+
+                reader.onload = (e) => {
+                    if (file.type.startsWith('image/')) {
+                        const img = new Image();
+                        img.onload = () => {
+                            let qualityMessage = '';
+                            let isValid = true;
+                            if (img.width < 500 || img.height < 500) {
+                                qualityMessage = 'Advertencia: Baja resolución. El OCR podría no ser preciso.';
+                                isValid = false;
+                            } else if (file.size > 5 * 1024 * 1024) { // 5MB
+                                qualityMessage = 'Advertencia: Archivo muy grande. Puede tardar en procesar.';
+                            }
+                            listItem.querySelector('.file-status').textContent = qualityMessage || 'Listo para procesar';
+                            if (!isValid) {
+                                listItem.querySelector('.file-status').style.color = 'orange';
+                                allFilesValid = false; // Mark that at least one file is not ideal
+                            } else {
+                                listItem.querySelector('.file-status').style.color = 'green';
+                            }
+                            processedFiles[fileId] = { file: file, status: 'ready', type: 'image', dataUrl: e.target.result };
+                            checkAllFilesReady();
+                        };
+                        img.onerror = () => {
+                            listItem.querySelector('.file-status').textContent = 'Error al cargar imagen.';
+                            listItem.querySelector('.file-status').style.color = 'red';
+                            allFilesValid = false;
+                            checkAllFilesReady();
+                        };
+                        img.src = e.target.result;
+                    } else if (file.type === 'application/pdf') {
+                        listItem.querySelector('.file-status').textContent = 'Listo para procesar (PDF)';
+                        listItem.querySelector('.file-status').style.color = 'green';
+                        processedFiles[fileId] = { file: file, status: 'ready', type: 'pdf' };
+                        checkAllFilesReady();
+                    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                        listItem.querySelector('.file-status').textContent = 'Listo para procesar (DOCX)';
+                        listItem.querySelector('.file-status').style.color = 'green';
+                        processedFiles[fileId] = { file: file, status: 'ready', type: 'docx' };
+                        checkAllFilesReady();
+                    } else {
+                        listItem.querySelector('.file-status').textContent = 'Tipo de archivo no soportado.';
+                        listItem.querySelector('.file-status').style.color = 'red';
+                        allFilesValid = false;
+                        checkAllFilesReady();
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+
+            function checkAllFilesReady() {
+                const allReady = Object.keys(processedFiles).length === files.length;
+                processScannedFilesButton.disabled = !allReady;
+            }
+
+            // Add event listener for remove buttons
+            uploadedFilesUl.addEventListener('click', (e) => {
+                if (e.target.classList.contains('remove-file-button')) {
+                    const idToRemove = e.target.dataset.id;
+                    delete processedFiles[idToRemove];
+                    e.target.closest('.file-item').remove();
+                    processScannedFilesButton.disabled = Object.keys(processedFiles).length === 0;
+                }
+            });
+        }
+
+
+        processScannedFilesButton.addEventListener("click", async () => {
+            ocrResultadoDiv.textContent = "Procesando archivos...";
+            let combinedText = "";
+            let errorOccurred = false;
+
+            for (const fileId in processedFiles) {
+                const fileItem = processedFiles[fileId];
+                const listItem = uploadedFilesUl.querySelector(`[data-id="${fileId}"]`).closest('.file-item');
+                listItem.querySelector('.file-status').textContent = 'Procesando OCR...';
+                listItem.querySelector('.file-status').style.color = 'blue';
+
+                try {
+                    let text = '';
+                    if (fileItem.type === 'image' || fileItem.type === 'pdf') {
+                        // For images and PDFs, send to backend OCR
+                        const formData = new FormData();
+                        formData.append("file", fileItem.file);
+                        const res = await fetch("/ocr", {
+                            method: "POST",
+                            body: formData
+                        });
+                        if (!res.ok) {
+                            const errorData = await res.json();
+                            throw new Error(errorData.error || `Error OCR: ${res.status}`);
+                        }
+                        const ocrResult = await res.json();
+                        text = ocrResult.readResults ? ocrResult.readResults.map(r => r.content).join("\n") : '';
+                        if (!text && ocrResult.status === "succeeded" && ocrResult.analyzeResult && ocrResult.analyzeResult.readResults) {
+                            // Fallback for newer Azure Vision API response structure
+                            text = ocrResult.analyzeResult.readResults.map(r => r.content).join("\n");
+                        }
+                        if (!text) {
+                            text = "No se detectó texto en la imagen/PDF.";
+                        }
+                    } else if (fileItem.type === 'docx') {
+                        // For DOCX, use mammoth.js in frontend
+                        const arrayBuffer = await fileItem.file.arrayBuffer();
+                        const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+                        text = result.value;
+                    }
+
+                    combinedText += `--- Texto de ${fileItem.file.name} ---\n${text}\n\n`;
+                    listItem.querySelector('.file-status').textContent = 'OCR Completado';
+                    listItem.querySelector('.file-status').style.color = 'green';
+
+                } catch (error) {
+                    errorOccurred = true;
+                    combinedText += `--- Error al procesar ${fileItem.file.name}: ${error.message} ---\n\n`;
+                    listItem.querySelector('.file-status').textContent = `Error: ${error.message}`;
+                    listItem.querySelector('.file-status').style.color = 'red';
+                    console.error(`Error processing ${fileItem.file.name}:`, error);
+                }
+            }
+            ocrResultadoDiv.textContent = combinedText;
+            document.getElementById("evaluacion").value = combinedText; // Populate evaluation textarea
+            if (errorOccurred) {
+                alert("Algunos archivos no pudieron ser procesados correctamente. Revisa el resultado del OCR.");
+            }
+        });
+
+        // --- Camera Functionality ---
+        startCameraButton.addEventListener('click', async () => {
+            try {
+                currentStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                cameraFeed.srcObject = currentStream;
+                startCameraButton.disabled = true;
+                takePhotoButton.disabled = false;
+                stopCameraButton.disabled = false;
+                imageQualityMessage.style.display = 'none';
+                photoPreview.style.display = 'none';
+            } catch (err) {
+                console.error('Error al acceder a la cámara:', err);
+                imageQualityMessage.style.display = 'block';
+                imageQualityMessage.className = 'alert alert-error';
+                imageQualityMessage.innerHTML = `<i class="fas fa-times-circle"></i> No se pudo iniciar la cámara. Asegúrate de dar permisos.`;
+            }
+        });
+
+        takePhotoButton.addEventListener('click', () => {
+            if (!currentStream) return;
+
+            const context = cameraCanvas.getContext('2d');
+            cameraCanvas.width = cameraFeed.videoWidth;
+            cameraCanvas.height = cameraFeed.videoHeight;
+            context.drawImage(cameraFeed, 0, 0, cameraCanvas.width, cameraCanvas.height);
+
+            cameraCanvas.toBlob((blob) => {
+                photoTakenBlob = blob;
+                photoPreview.src = URL.createObjectURL(blob);
+                photoPreview.style.display = 'block';
+
+                // Basic image quality check for camera photo
+                let qualityMsg = '';
+                let isValid = true;
+                if (cameraCanvas.width < 800 || cameraCanvas.height < 600) {
+                    qualityMsg = 'Advertencia: Baja resolución de la foto. El OCR podría no ser preciso.';
+                    isValid = false;
+                } else if (blob.size < 50 * 1024) { // Very small file size (e.g., <50KB) might indicate very low quality/detail
+                    qualityMsg = 'Advertencia: El tamaño del archivo es muy pequeño. La calidad de la imagen podría ser baja.';
+                    isValid = false;
+                }
+
+                imageQualityMessage.style.display = 'block';
+                if (isValid) {
+                    imageQualityMessage.className = 'alert alert-success';
+                    imageQualityMessage.innerHTML = `<i class="fas fa-check-circle"></i> Foto capturada. Calidad adecuada para OCR.`;
+                } else {
+                    imageQualityMessage.className = 'alert alert-warning';
+                    imageQualityMessage.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${qualityMsg}`;
+                }
+
+                // Automatically add to processed files for OCR
+                const file = new File([blob], `camera_photo_${Date.now()}.png`, { type: 'image/png' });
+                handleScannedFiles([file]);
+            }, 'image/png');
+        });
+
+        stopCameraButton.addEventListener('click', () => {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                cameraFeed.srcObject = null;
+                startCameraButton.disabled = false;
+                takePhotoButton.disabled = true;
+                stopCameraButton.disabled = true;
+                imageQualityMessage.style.display = 'none';
+            }
+        });
+
+        // --- Historial de Evaluaciones (Local Storage) ---
+        function saveEvaluationToHistory(evaluationData) {
+            evaluationsHistory.unshift(evaluationData); // Add to the beginning
+            localStorage.setItem('libelia_evaluations_history', JSON.stringify(evaluationsHistory));
+            loadEvaluationsHistory(); // Refresh the history list
+        }
+
+        function loadEvaluationsHistory() {
+            const storedHistory = localStorage.getItem('libelia_evaluations_history');
+            if (storedHistory) {
+                evaluationsHistory = JSON.parse(storedHistory);
+            } else {
+                evaluationsHistory = [];
+            }
+            renderEvaluationsHistory();
+        }
+
+        function renderEvaluationsHistory() {
+            historialListDiv.innerHTML = '';
+            if (evaluationsHistory.length === 0) {
+                historialListDiv.innerHTML = '<p>No hay evaluaciones en el historial aún.</p>';
+                return;
+            }
+
+            evaluationsHistory.forEach(evalData => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'historial-item';
+                const date = new Date(evalData.timestamp).toLocaleString();
+                itemDiv.innerHTML = `
+                    <h3>${evalData.alumno} - ${evalData.nombrePrueba}</h3>
+                    <p><strong>Curso:</strong> ${evalData.curso}</p>
+                    <p><strong>Fecha:</strong> ${date}</p>
+                    <p><strong>Nota Final:</strong> <span style="font-size: 1.2em; font-weight: bold; color: ${evalData.nota_final_aplicada >= 4.0 ? 'green' : 'red'};">${evalData.nota_final_aplicada ? evalData.nota_final_aplicada.toFixed(1) : 'N/A'}</span></p>
+                    <div class="actions">
+                        <button onclick="viewEvaluationDetails('${evalData.id}')"><i class="fas fa-eye"></i> Ver Detalles</button>
+                        <button onclick="deleteEvaluationFromHistory('${evalData.id}')" style="background-color: var(--accent-color);"><i class="fas fa-trash-alt"></i> Eliminar</button>
+                    </div>
+                `;
+                historialListDiv.appendChild(itemDiv);
+            });
+        }
+
+        function viewEvaluationDetails(id) {
+            const evalData = evaluationsHistory.find(e => e.id == id);
+            if (evalData) {
+                // Populate evalForm with this data
+                document.getElementById("alumno").value = evalData.alumno || '';
+                document.getElementById("curso").value = evalData.curso || '';
+                document.getElementById("nombrePrueba").value = evalData.nombrePrueba || '';
+                // Note: 'evaluacion' and 'rubrica' are not stored in the current JSON output from Mistral.
+                // If you want to retrieve them, you'd need to store them in the JSON from the backend.
+                // For now, we can show the result JSON in the output area.
+                document.getElementById("evaluacion").value = "Contenido original de la evaluación no disponible en el JSON guardado.";
+                document.getElementById("rubrica").value = "Rúbrica original no disponible en el JSON guardado.";
+
+                resultadoDiv.textContent = JSON.stringify(evalData, null, 2);
+                document.querySelector('.tab-button[data-tab="eval-section"]').click(); // Switch to eval tab
+            } else {
+                alert("Evaluación no encontrada.");
+            }
+        }
+
+        function deleteEvaluationFromHistory(id) {
+            if (confirm("¿Estás seguro de que quieres eliminar esta evaluación del historial?")) {
+                evaluationsHistory = evaluationsHistory.filter(e => e.id != id);
+                localStorage.setItem('libelia_evaluations_history', JSON.stringify(evaluationsHistory));
+                renderEvaluationsHistory();
+            }
+        }
+
+        // Load history on page load
+        document.addEventListener('DOMContentLoaded', loadEvaluationsHistory);
+
+
+        // --- Rubric Assistant ---
+        rubricAssistantForm.addEventListener("submit", async e => {
+            e.preventDefault();
+            rubricAssistantOutput.textContent = "Generando rúbrica...";
+            const rubricPrompt = document.getElementById("rubricPrompt").value;
+
+            const fullPrompt = `Eres un asistente de rúbricas IA. Tu tarea es generar o mejorar una rúbrica basada en la siguiente descripción. La rúbrica debe ser clara, concisa y con criterios medibles. Si se pide una escala, inclúyela.
+            Descripción de la rúbrica: ${rubricPrompt}
+
+            Formato de salida (solo la rúbrica):
+            [Nombre del Criterio 1] (Escala si aplica): [Descripción del criterio 1]
+            [Nombre del Criterio 2] (Escala si aplica): [Descripción del criterio 2]
+            ...
+            `;
+
+            const dataToSend = {
+                prompt: fullPrompt,
+                alumno: "Asistente de Rúbricas", // Dummy data for backend
+                evaluacion: "",
+                rubrica: "",
+                curso: "",
+                nombrePrueba: "",
+                flexibilidadIA: 5,
+                notaMinima: 1.0
+            };
+
+            try {
+                const res = await fetch("/evaluar", { // Reusing eval endpoint for simplicity
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(dataToSend)
+                });
+
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+                }
+
+                const result = await res.json();
+                rubricAssistantOutput.textContent = result.choices[0].message.content;
+                document.getElementById("rubrica").value = result.choices[0].message.content; // Populate rubric field
+            } catch (error) {
+                rubricAssistantOutput.textContent = `Error al generar rúbrica: ${error.message}`;
+                console.error("Error en asistente de rúbricas:", error);
+            }
+        });
+
+        // --- Analysis and Portfolio ---
+        filterAnalysisButton.addEventListener('click', renderAnalysisCharts);
+        generatePortfolioButton.addEventListener('click', generatePortfolioPDF);
+
+        function renderAnalysisCharts() {
+            const studentFilter = analysisStudentNameInput.value.toLowerCase();
+            const courseFilter = analysisCourseNameInput.value.toLowerCase();
+
+            const filteredEvals = evaluationsHistory.filter(evalData => {
+                const matchesStudent = studentFilter === '' || (evalData.alumno && evalData.alumno.toLowerCase().includes(studentFilter));
+                const matchesCourse = courseFilter === '' || (evalData.curso && evalData.curso.toLowerCase().includes(courseFilter));
+                return matchesStudent && matchesCourse;
+            });
+
+            // Destroy existing chart instances to prevent duplicates
+            if (chartInstances.gradesChart) chartInstances.gradesChart.destroy();
+            if (chartInstances.criteriaChart) chartInstances.criteriaChart.destroy();
+
+            if (filteredEvals.length === 0) {
+                document.getElementById('analysisResults').innerHTML = '<p>No hay datos para mostrar con los filtros aplicados.</p>';
+                return;
+            } else {
+                document.getElementById('analysisResults').innerHTML = `
+                    <h3>Resumen de Notas</h3>
+                    <div class="chart-container"><canvas id="gradesChart"></canvas></div>
+                    <h3>Progreso por Criterio</h3>
+                    <div class="chart-container"><canvas id="criteriaChart"></canvas></div>
+                `;
+            }
+
+            // Grades Chart
+            const gradesLabels = filteredEvals.map(e => `${e.nombrePrueba} (${new Date(e.timestamp).toLocaleDateString()})`);
+            const gradesData = filteredEvals.map(e => e.nota_final_aplicada);
+
+            chartInstances.gradesChart = new Chart(gradesChartCanvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: gradesLabels,
+                    datasets: [{
+                        label: 'Nota Final',
+                        data: gradesData,
+                        borderColor: varToRgb('--primary-color'),
+                        backgroundColor: varToRgb('--primary-color', 0.2),
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 7.0,
+                            min: 1.0
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Notas Finales a lo largo del tiempo'
+                        }
+                    }
+                }
+            });
+
+            // Criteria Chart (Average scores per criterion)
+            const criteriaScores = {};
+            filteredEvals.forEach(evalData => {
+                if (evalData.analisis_por_criterio) {
+                    for (const criterion in evalData.analisis_por_criterio) {
+                        // Extract numerical score from criterion analysis string (e.g., "Análisis (3/5)")
+                        const match = evalData.analisis_por_criterio[criterion].match(/(\d+(\.\d+)?)\/(\d+(\.\d+)?)/);
+                        if (match) {
+                            const score = parseFloat(match[1]);
+                            const maxScore = parseFloat(match[3]);
+                            if (!isNaN(score) && !isNaN(maxScore) && maxScore > 0) {
+                                const normalizedScore = (score / maxScore) * 100; // Normalize to 0-100
+                                if (!criteriaScores[criterion]) {
+                                    criteriaScores[criterion] = { total: 0, count: 0 };
+                                }
+                                criteriaScores[criterion].total += normalizedScore;
+                                criteriaScores[criterion].count++;
+                            }
+                        }
+                    }
+                }
+            });
+
+            const avgCriteriaLabels = Object.keys(criteriaScores);
+            const avgCriteriaData = avgCriteriaLabels.map(criterion =>
+                (criteriaScores[criterion].total / criteriaScores[criterion].count).toFixed(1)
+            );
+
+            if (avgCriteriaLabels.length > 0) {
+                chartInstances.criteriaChart = new Chart(criteriaChartCanvas.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: avgCriteriaLabels,
+                        datasets: [{
+                            label: 'Puntaje Promedio por Criterio (0-100%)',
+                            data: avgCriteriaData,
+                            backgroundColor: varToRgb('--secondary-color', 0.6),
+                            borderColor: varToRgb('--secondary-color'),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Rendimiento Promedio por Criterio'
+                            }
+                        }
+                    }
+                });
+            } else {
+                document.getElementById('criteriaChart').parentElement.innerHTML = '<p>No hay datos de criterios para mostrar.</p>';
+            }
+        }
+
+        // Helper to convert CSS variable to RGB string for Chart.js
+        function varToRgb(variable, alpha = 1) {
+            const color = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+            if (color.startsWith('#')) {
+                let r = parseInt(color.substring(1, 3), 16);
+                let g = parseInt(color.substring(3, 5), 16);
+                let b = parseInt(color.substring(5, 7), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+            return color; // Fallback for other color formats
+        }
+
+        async function generatePortfolioPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const studentFilter = analysisStudentNameInput.value.toLowerCase();
+            const courseFilter = analysisCourseNameInput.value.toLowerCase();
+
+            const filteredEvals = evaluationsHistory.filter(evalData => {
+                const matchesStudent = studentFilter === '' || (evalData.alumno && evalData.alumno.toLowerCase().includes(studentFilter));
+                const matchesCourse = courseFilter === '' || (evalData.curso && evalData.curso.toLowerCase().includes(courseFilter));
+                return matchesStudent && matchesCourse;
+            });
+
+            if (filteredEvals.length === 0) {
+                alert("No hay evaluaciones para generar el portafolio con los filtros actuales.");
+                return;
+            }
+
+            // Title Page
+            doc.setFontSize(24);
+            doc.setTextColor(varToRgb('--primary-color'));
+            doc.text("Portafolio de Evidencias LibelIA", 105, 40, null, null, "center");
+            doc.setFontSize(14);
+            doc.setTextColor(varToRgb('--text-color'));
+            doc.text(`Estudiante: ${studentFilter || 'Todos'}`, 105, 60, null, null, "center");
+            doc.text(`Curso: ${courseFilter || 'Todos'}`, 105, 70, null, null, "center");
+            doc.setFontSize(10);
+            doc.text(`Generado el: ${new Date().toLocaleDateString()}`, 105, 80, null, null, "center");
+            doc.addImage('https://via.placeholder.com/150/4b0082/FFFFFF?text=LibelIA', 'PNG', 80, 100, 50, 50); // Placeholder logo
+            doc.addPage();
+
+            // Add Charts
+            if (chartInstances.gradesChart) {
+                doc.setFontSize(18);
+                doc.setTextColor(varToRgb('--primary-color'));
+                doc.text("Gráfico de Notas Finales", 14, 20);
+                const gradesChartImage = chartInstances.gradesChart.toBase64Image();
+                doc.addImage(gradesChartImage, 'PNG', 10, 30, 180, 100);
+                doc.addPage();
+            }
+
+            if (chartInstances.criteriaChart) {
+                doc.setFontSize(18);
+                doc.setTextColor(varToRgb('--primary-color'));
+                doc.text("Gráfico de Rendimiento por Criterio", 14, 20);
+                const criteriaChartImage = chartInstances.criteriaChart.toBase64Image();
+                doc.addImage(criteriaChartImage, 'PNG', 10, 30, 180, 100);
+                doc.addPage();
+            }
+
+            // Add individual evaluations
+            doc.setFontSize(18);
+            doc.setTextColor(varToRgb('--primary-color'));
+            doc.text("Detalle de Evaluaciones", 14, 20);
+            let yPos = 30;
+
+            filteredEvals.forEach((evalData, index) => {
+                if (yPos > 250) { // New page if content exceeds
+                    doc.addPage();
+                    yPos = 20;
+                }
+
+                doc.setFontSize(14);
+                doc.setTextColor(varToRgb('--secondary-color'));
+                doc.text(`${index + 1}. ${evalData.nombrePrueba} (${evalData.alumno})`, 14, yPos);
+                yPos += 10;
+                doc.setFontSize(10);
+                doc.setTextColor(varToRgb('--text-color'));
+                doc.text(`Curso: ${evalData.curso}`, 14, yPos);
+                yPos += 7;
+                doc.text(`Fecha: ${new Date(evalData.timestamp).toLocaleDateString()}`, 14, yPos);
+                yPos += 7;
+                doc.text(`Nota Final Aplicada: ${evalData.nota_final_aplicada ? evalData.nota_final_aplicada.toFixed(1) : 'N/A'}`, 14, yPos);
+                yPos += 10;
+
+                doc.setFontSize(10);
+                doc.setTextColor(varToRgb('--text-color'));
+                doc.text('Feedback General:', 14, yPos);
+                yPos += 5;
+                doc.setFontSize(9);
+                const feedbackLines = doc.splitTextToSize(evalData.feedback_general, 180);
+                doc.text(feedbackLines, 14, yPos);
+                yPos += (feedbackLines.length * 5) + 5;
+
+                doc.setFontSize(10);
+                doc.setTextColor(varToRgb('--text-color'));
+                doc.text('Puntos Fuertes:', 14, yPos);
+                yPos += 5;
+                doc.setFontSize(9);
+                const strongPoints = evalData.puntos_fuertes ? evalData.puntos_fuertes.join(', ') : 'N/A';
+                const strongPointsLines = doc.splitTextToSize(strongPoints, 180);
+                doc.text(strongPointsLines, 14, yPos);
+                yPos += (strongPointsLines.length * 5) + 5;
+
+                doc.setFontSize(10);
+                doc.setTextColor(varToRgb('--text-color'));
+                doc.text('Sugerencias de Mejora:', 14, yPos);
+                yPos += 5;
+                doc.setFontSize(9);
+                const suggestions = evalData.sugerencias_mejora ? evalData.sugerencias_mejora.join(', ') : 'N/A';
+                const suggestionsLines = doc.splitTextToSize(suggestions, 180);
+                doc.text(suggestionsLines, 14, yPos);
+                yPos += (suggestionsLines.length * 5) + 10; // Extra space before next item
+            });
+
+            doc.save(`Portafolio_LibelIA_${studentFilter || 'Todos'}_${courseFilter || 'Todos'}.pdf`);
+        }
+
+        // --- Manual Grade Adjustment ---
+        applyBonusButton.addEventListener('click', () => {
+            const evalId = adjustEvalIdInput.value;
+            const bonus = parseFloat(bonusPointsInput.value);
+            const reason = bonusReasonTextarea.value;
+
+            if (!evalId || isNaN(bonus) || bonus < 0 || !reason) {
+                bonusStatusDiv.className = 'alert alert-error';
+                bonusStatusDiv.innerHTML = `<i class="fas fa-times-circle"></i> Por favor, completa todos los campos y asegúrate de que la bonificación sea un número válido.`;
+                return;
+            }
+
+            const evalIndex = evaluationsHistory.findIndex(e => e.id == evalId);
+            if (evalIndex === -1) {
+                bonusStatusDiv.className = 'alert alert-error';
+                bonusStatusDiv.innerHTML = `<i class="fas fa-times-circle"></i> Evaluación con ID ${evalId} no encontrada en el historial.`;
+                return;
+            }
+
+            const originalEval = evaluationsHistory[evalIndex];
+            let newNote = originalEval.nota_final_aplicada + bonus;
+            if (newNote > 7.0) newNote = 7.0; // Cap at 7.0
+
+            originalEval.nota_final_aplicada = parseFloat(newNote.toFixed(1)); // Round to 1 decimal
+            if (!originalEval.ajustes_manuales) {
+                originalEval.ajustes_manuales = [];
+            }
+            originalEval.ajustes_manuales.push({
+                fecha: new Date().toLocaleString(),
+                bonificacion: bonus,
+                razon: reason,
+                nota_antes: originalEval.nota_final_aplicada - bonus,
+                nota_despues: originalEval.nota_final_aplicada
+            });
+
+            localStorage.setItem('libelia_evaluations_history', JSON.stringify(evaluationsHistory));
+            loadEvaluationsHistory(); // Refresh history display
+            bonusStatusDiv.className = 'alert alert-success';
+            bonusStatusDiv.innerHTML = `<i class="fas fa-check-circle"></i> Nota de ${originalEval.alumno} ajustada a ${originalEval.nota_final_aplicada.toFixed(1)} (+${bonus.toFixed(1)}).`;
+
+            // Clear form
+            adjustEvalIdInput.value = '';
+            bonusPointsInput.value = '0.0';
+            bonusReasonTextarea.value = '';
+        });
+
+    </script>
 </body>
 </html>
