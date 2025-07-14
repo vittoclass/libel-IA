@@ -1,3 +1,8 @@
+¡De acuerdo\! Entendido. Quieres el archivo HTML completo, incluyendo el `<!DOCTYPE html>` inicial, el `<head>`, el `<body>`, y todo el JavaScript dentro de su etiqueta `<script>` correctamente cerrada, así como el modal de nota mínima.
+
+Aquí tienes el archivo `index.html` completo y listo. Por favor, **reemplaza todo el contenido de tu archivo `index.html`** con este código.
+
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -156,7 +161,7 @@
 
         /* Modal */
         .modal {
-            display: none; /* Hidden by default */
+            display: none; /* Hidden by default, changed to flex by JS */
             position: fixed; /* Stay in place */
             z-index: 1000; /* Sit on top */
             left: 0;
@@ -165,13 +170,12 @@
             height: 100%; /* Full height */
             overflow: auto; /* Enable scroll if needed */
             background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            align-items: center; /* Centrar contenido verticalmente */
+            justify-content: center; /* Centrar contenido horizontalmente */
         }
         .modal-content {
             background-color: #fefefe;
-            margin: auto;
+            margin: auto; /* Para centrar con display: block (cuando no es flex) */
             padding: 2em;
             border-radius: 10px;
             width: 80%;
@@ -492,6 +496,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.15/mammoth.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
         // Global state
         let currentStream;
@@ -523,11 +528,15 @@
         const notaMinimaOverrideConfirmInput = document.getElementById("notaMinimaOverrideConfirm");
         const flexibilidadIAInput = document.getElementById("flexibilidadIA");
         const flexibilidadValueSpan = document.getElementById("flexibilidadValue");
+
+        // Referencias a los elementos del modal de nota mínima
         const notaMinimaModal = document.getElementById("notaMinimaModal");
         const iaCalculatedNoteSpan = document.getElementById("iaCalculatedNote");
         const guaranteedNoteSpan = document.getElementById("guaranteedNote");
         const confirmNotaMinimaButton = document.getElementById("confirmNotaMinima");
         const cancelNotaMinimaButton = document.getElementById("cancelNotaMinima");
+        const notaMinimaModalCloseButton = notaMinimaModal.querySelector('.close-button');
+
         const historialListDiv = document.getElementById("historialList");
         const rubricAssistantForm = document.getElementById("rubricAssistantForm");
         const rubricAssistantOutput = document.getElementById("rubricAssistantOutput");
@@ -542,6 +551,46 @@
         const bonusReasonTextarea = document.getElementById("bonusReason");
         const applyBonusButton = document.getElementById("applyBonus");
         const bonusStatusDiv = document.getElementById("bonusStatus");
+
+        // Variable global para almacenar el "resolver" de la promesa del modal
+        let resolveNotaMinimaPromise;
+
+        // Función para abrir el modal de confirmación de nota mínima
+        function showNotaMinimaConfirmation(iaNote, minNote) {
+            iaCalculatedNoteSpan.textContent = iaNote.toFixed(1);
+            guaranteedNoteSpan.textContent = minNote.toFixed(1);
+            notaMinimaModal.style.display = 'flex'; // Mostrar el modal
+            notaMinimaModal.style.alignItems = 'center'; // Centrar verticalmente
+            notaMinimaModal.style.justifyContent = 'center'; // Centrar horizontalmente
+
+            return new Promise(resolve => {
+                resolveNotaMinimaPromise = resolve; // Guardar el resolver para usarlo desde los manejadores de clic
+            });
+        }
+
+        // Manejador de clic para "Sí, aplicar nota mínima"
+        confirmNotaMinimaButton.addEventListener('click', () => {
+            notaMinimaModal.style.display = 'none';
+            if (resolveNotaMinimaPromise) {
+                resolveNotaMinimaPromise(true); // Resuelve la promesa con 'true'
+            }
+        });
+
+        // Manejador de clic para "No, usar nota de la IA"
+        cancelNotaMinimaButton.addEventListener('click', () => {
+            notaMinimaModal.style.display = 'none';
+            if (resolveNotaMinimaPromise) {
+                resolveNotaMinimaPromise(false); // Resuelve la promesa con 'false'
+            }
+        });
+
+        // Manejador de clic para el botón de cerrar el modal
+        notaMinimaModalCloseButton.addEventListener('click', () => {
+            notaMinimaModal.style.display = 'none';
+            if (resolveNotaMinimaPromise) {
+                resolveNotaMinimaPromise(false); // Considerar como "No" si el usuario cierra el modal
+            }
+        });
 
 
         // --- Tab Navigation ---
@@ -562,8 +611,6 @@
             });
         });
 
-        // --- API Key Management (REMOVED AS PER USER REQUEST - MANAGED BY BACKEND) ---
-
         // --- Form Evaluation ---
         flexibilidadIAInput.addEventListener("input", () => {
             flexibilidadValueSpan.textContent = flexibilidadIAInput.value;
@@ -583,6 +630,7 @@
             e.preventDefault();
             resultadoDiv.textContent = "Evaluando...";
             notaMinimaWarning.style.display = 'none';
+            notaMinimaOverrideWarning.style.display = 'none';
 
             const alumno = evalForm.alumno.value;
             const evaluacion = evalForm.evaluacion.value;
@@ -592,7 +640,7 @@
             const flexibilidadIA = flexibilidadIAInput.value;
             let notaMinima = parseFloat(notaMinimaInput.value);
 
-            if (notaMinima < 4.0 && notaMinimaOverrideConfirmInput.value !== "CONFIRMAR") {
+            if (notaMinima < 4.0 && notaMinimaOverrideConfirmInput.value.trim().toUpperCase() !== "CONFIRMAR") {
                 resultadoDiv.textContent = "Error: Debes escribir 'CONFIRMAR' para aplicar una nota mínima inferior a 4.0.";
                 notaMinimaOverrideWarning.style.display = 'block';
                 return;
@@ -603,7 +651,7 @@
             if (curso.toLowerCase().includes("diferenciada") || nombrePrueba.toLowerCase().includes("diferenciada") ||
                 curso.toLowerCase().includes("pie") || nombrePrueba.toLowerCase().includes("pie") ||
                 curso.toLowerCase().includes("adecuación") || nombrePrueba.toLowerCase().includes("adecuación")) {
-                contextPrompt = "Considera que esta es una evaluación diferenciada o con adecuación curricular. Sé más empático y enfócate en el progreso y el esfuerzo, no solo en el resultado final. Ajusta tu lenguaje para ser alentador y constructivo.";
+                contextPrompt = "Considera que esta es una evaluación con consideraciones especiales (ej. diferenciada, de apoyo). Sé más empático y enfócate en el progreso y el esfuerzo, no solo en el resultado final. Ajusta tu lenguaje para ser alentador y constructivo.";
             } else if (curso.toLowerCase().includes("superior") || curso.toLowerCase().includes("universidad") ||
                        nombrePrueba.toLowerCase().includes("tesis") || nombrePrueba.toLowerCase().includes("investigación avanzada")) {
                 contextPrompt = "Considera que esta es una evaluación de nivel superior. Espera un análisis crítico profundo, argumentación sólida y un lenguaje académico. Sé riguroso en tu feedback.";
@@ -641,7 +689,6 @@
             }
             Asegúrate de que el JSON sea válido y completo.`;
 
-
             const dataToSend = {
                 alumno: alumno,
                 evaluacion: evaluacion,
@@ -650,7 +697,7 @@
                 nombrePrueba: nombrePrueba,
                 flexibilidadIA: flexibilidadIA,
                 notaMinima: notaMinima,
-                prompt: fullPrompt // Enviamos el prompt completo al backend
+                prompt: fullPrompt
             };
 
             try {
@@ -668,7 +715,6 @@
                 const result = await res.json();
                 let iaResult = result.choices[0].message.content;
 
-                // Intentar parsear el JSON de la IA
                 let parsedIaResult;
                 try {
                     parsedIaResult = JSON.parse(iaResult);
@@ -678,44 +724,27 @@
                     return;
                 }
 
-                let finalNote = parsedIaResult.nota_sugerida_ia;
-                const iaCalculatedNoteVal = parseFloat(parsedIaResult.nota_sugerida_ia);
+                let finalNote = parseFloat(parsedIaResult.nota_sugerida_ia); // Asegurar que es un número
+                const iaCalculatedNoteVal = finalNote;
 
+                // Lógica para mostrar el modal si la nota de la IA es menor que la mínima
                 if (iaCalculatedNoteVal < notaMinima) {
-                    iaCalculatedNoteSpan.textContent = iaCalculatedNoteVal.toFixed(1);
-                    guaranteedNoteSpan.textContent = notaMinima.toFixed(1);
-                    notaMinimaModal.style.display = 'flex'; // Show modal
-
-                    // Wait for user interaction with modal
-                    const userConfirmed = await new Promise(resolve => {
-                        confirmNotaMinimaButton.onclick = () => {
-                            notaMinimaModal.style.display = 'none';
-                            resolve(true);
-                        };
-                        cancelNotaMinimaButton.onclick = () => {
-                            notaMinimaModal.style.display = 'none';
-                            resolve(false);
-                        };
-                        // Close button in modal
-                        notaMinimaModal.querySelector('.close-button').onclick = () => {
-                            notaMinimaModal.style.display = 'none';
-                            resolve(false);
-                        };
-                    });
+                    const userConfirmed = await showNotaMinimaConfirmation(iaCalculatedNoteVal, notaMinima);
 
                     if (userConfirmed) {
                         finalNote = notaMinima;
-                        notaMinimaWarning.style.display = 'block';
+                        notaMinimaWarning.style.display = 'block'; // Mostrar la advertencia visual
                     } else {
-                        finalNote = iaCalculatedNoteVal;
-                        notaMinimaWarning.style.display = 'none'; // Ensure warning is hidden if user cancels
+                        finalNote = iaCalculatedNoteVal; // Usar la nota de la IA si el usuario cancela
+                        notaMinimaWarning.style.display = 'none'; // Ocultar la advertencia
                     }
                 } else {
-                    notaMinimaWarning.style.display = 'none';
+                    notaMinimaWarning.style.display = 'none'; // Asegurarse de que la advertencia no se muestre si no es necesario
                 }
 
+
                 // Add the final note to the parsed result
-                parsedIaResult.nota_final_aplicada = finalNote;
+                parsedIaResult.nota_final_aplicada = parseFloat(finalNote.toFixed(1)); // Redondear a 1 decimal
                 parsedIaResult.timestamp = Date.now(); // Add timestamp for history
                 parsedIaResult.id = parsedIaResult.timestamp; // Simple ID for now
 
@@ -1029,6 +1058,14 @@
                 document.getElementById("evaluacion").value = "Contenido original de la evaluación no disponible en el JSON guardado.";
                 document.getElementById("rubrica").value = "Rúbrica original no disponible en el JSON guardado.";
 
+                // Populate settings for context
+                document.getElementById("flexibilidadIA").value = evalData.flexibilidadIA || 5;
+                document.getElementById("flexibilidadValue").textContent = evalData.flexibilidadIA || 5;
+                document.getElementById("notaMinima").value = evalData.notaMinima || 4.0;
+                // Clear override confirmation for loaded data
+                document.getElementById("notaMinimaOverrideConfirm").value = '';
+                document.getElementById("notaMinimaOverrideWarning").style.display = 'none';
+
                 resultadoDiv.textContent = JSON.stringify(evalData, null, 2);
                 document.querySelector('.tab-button[data-tab="eval-section"]').click(); // Switch to eval tab
             } else {
@@ -1041,6 +1078,7 @@
                 evaluationsHistory = evaluationsHistory.filter(e => e.id != id);
                 localStorage.setItem('libelia_evaluations_history', JSON.stringify(evaluationsHistory));
                 renderEvaluationsHistory();
+                renderAnalysisCharts(); // Re-render charts after deletion
             }
         }
 
@@ -1064,14 +1102,14 @@
             `;
 
             const dataToSend = {
-                prompt: fullPrompt,
                 alumno: "Asistente de Rúbricas", // Dummy data for backend
                 evaluacion: "",
                 rubrica: "",
                 curso: "",
                 nombrePrueba: "",
                 flexibilidadIA: 5,
-                notaMinima: 1.0
+                notaMinima: 1.0,
+                prompt: fullPrompt
             };
 
             try {
@@ -1087,6 +1125,7 @@
                 }
 
                 const result = await res.json();
+                // La respuesta de la IA para la rúbrica es el contenido del mensaje
                 rubricAssistantOutput.textContent = result.choices[0].message.content;
                 document.getElementById("rubrica").value = result.choices[0].message.content; // Populate rubric field
             } catch (error) {
@@ -1220,7 +1259,11 @@
                     }
                 });
             } else {
-                document.getElementById('criteriaChart').parentElement.innerHTML = '<p>No hay datos de criterios para mostrar.</p>';
+                // Check if criteriaChartCanvas actually exists before trying to access its parentElement
+                const containerElement = document.getElementById('criteriaChart')?.parentElement;
+                if (containerElement) {
+                    containerElement.innerHTML = '<p>No hay datos de criterios para mostrar.</p>';
+                }
             }
         }
 
@@ -1268,6 +1311,9 @@
             doc.addPage();
 
             // Add Charts
+            // Re-render charts to get fresh images if they were filtered
+            renderAnalysisCharts();
+
             if (chartInstances.gradesChart) {
                 doc.setFontSize(18);
                 doc.setTextColor(varToRgb('--primary-color'));
@@ -1389,7 +1435,6 @@
             bonusPointsInput.value = '0.0';
             bonusReasonTextarea.value = '';
         });
-
     </script>
 </body>
 </html>
