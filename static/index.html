@@ -1,6 +1,14 @@
-¡De acuerdo\! Entendido. Quieres el archivo HTML completo, incluyendo el `<!DOCTYPE html>` inicial, el `<head>`, el `<body>`, y todo el JavaScript dentro de su etiqueta `<script>` correctamente cerrada, así como el modal de nota mínima.
+¡Absolutamente\! Mis disculpas por la confusión. Entiendo perfectamente que los botones del modal de "Confirmar Nota Mínima" te están impidiendo usar la aplicación y probarla. Mi error fue pensar que te referías a otras secciones.
 
-Aquí tienes el archivo `index.html` completo y listo. Por favor, **reemplaza todo el contenido de tu archivo `index.html`** con este código.
+Tienes toda la razón, lo más importante ahora mismo es que puedas **probar la aplicación sin ese bloqueo**. Vamos a **deshabilitar completamente la lógica de ese modal** para que no aparezca y puedas continuar.
+
+Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal de nota mínima completamente comentada (desactivada). Por favor, **reemplaza TODO el contenido de tu archivo `index.html` con este código.**
+
+**Cambio clave en este código:**
+
+  * He **comentado (desactivado)** **toda la sección JavaScript relacionada con el modal de `notaMinimaModal` y la lógica de `if (iaCalculatedNoteVal < notaMinima)`** dentro del `evalForm.addEventListener("submit")`. Esto significa que el modal no se mostrará en ninguna circunstancia, y la nota final siempre será la que la IA sugiera (o la que se calcule) sin ninguna confirmación adicional.
+
+<!-- end list -->
 
 ```html
 <!DOCTYPE html>
@@ -161,7 +169,7 @@ Aquí tienes el archivo `index.html` completo y listo. Por favor, **reemplaza to
 
         /* Modal */
         .modal {
-            display: none; /* Hidden by default, changed to flex by JS */
+            display: none; /* Hidden by default, now it will *never* be set to flex by JS */
             position: fixed; /* Stay in place */
             z-index: 1000; /* Sit on top */
             left: 0;
@@ -480,6 +488,27 @@ Aquí tienes el archivo `index.html` completo y listo. Por favor, **reemplaza to
                 <div id="bonusStatus" class="output"></div>
             </section>
         </section>
+
+        <section style="display: none;">
+            <h2>📝 Evaluaciones Guardadas (Demo)</h2>
+            <form id="guardarForm">
+                <label for="json">JSON del resultado IA:</label>
+                <textarea id="json" name="json" rows="4" placeholder="Pegue aquí el JSON del resultado..." required></textarea>
+                <button type="submit">💾 Guardar</button>
+            </form>
+            <div id="guardarStatus" class="output"></div>
+        </section>
+
+        <section style="display: none;">
+            <h2>🔎 Buscar Memoria por Estudiante</h2>
+            <form id="memoriaForm">
+                <label for="memAlumno">Nombre del estudiante:</label>
+                <input type="text" id="memAlumno" name="memAlumno" required>
+                <button type="submit">🔍 Buscar</button>
+            </form>
+            <div id="memoriaResultado" class="output"></div>
+        </section>
+
     </main>
 
     <div id="notaMinimaModal" class="modal">
@@ -529,7 +558,7 @@ Aquí tienes el archivo `index.html` completo y listo. Por favor, **reemplaza to
         const flexibilidadIAInput = document.getElementById("flexibilidadIA");
         const flexibilidadValueSpan = document.getElementById("flexibilidadValue");
 
-        // Referencias a los elementos del modal de nota mínima
+        // Referencias a los elementos del modal de nota mínima (SE MANTIENEN AQUÍ)
         const notaMinimaModal = document.getElementById("notaMinimaModal");
         const iaCalculatedNoteSpan = document.getElementById("iaCalculatedNote");
         const guaranteedNoteSpan = document.getElementById("guaranteedNote");
@@ -555,7 +584,7 @@ Aquí tienes el archivo `index.html` completo y listo. Por favor, **reemplaza to
         // Variable global para almacenar el "resolver" de la promesa del modal
         let resolveNotaMinimaPromise;
 
-        // Función para abrir el modal de confirmación de nota mínima
+        // Función para abrir el modal de confirmación de nota mínima (ESTA FUNCIÓN NO SE LLAMARÁ SI LA LÓGICA ESTÁ COMENTADA)
         function showNotaMinimaConfirmation(iaNote, minNote) {
             iaCalculatedNoteSpan.textContent = iaNote.toFixed(1);
             guaranteedNoteSpan.textContent = minNote.toFixed(1);
@@ -568,7 +597,7 @@ Aquí tienes el archivo `index.html` completo y listo. Por favor, **reemplaza to
             });
         }
 
-        // Manejador de clic para "Sí, aplicar nota mínima"
+        // Manejadores de clic para los botones del modal (SE MANTIENEN, PERO NO TENDRÁN EFECTO SI EL MODAL NUNCA SE ABRE POR LÓGICA)
         confirmNotaMinimaButton.addEventListener('click', () => {
             notaMinimaModal.style.display = 'none';
             if (resolveNotaMinimaPromise) {
@@ -576,7 +605,6 @@ Aquí tienes el archivo `index.html` completo y listo. Por favor, **reemplaza to
             }
         });
 
-        // Manejador de clic para "No, usar nota de la IA"
         cancelNotaMinimaButton.addEventListener('click', () => {
             notaMinimaModal.style.display = 'none';
             if (resolveNotaMinimaPromise) {
@@ -584,7 +612,6 @@ Aquí tienes el archivo `index.html` completo y listo. Por favor, **reemplaza to
             }
         });
 
-        // Manejador de clic para el botón de cerrar el modal
         notaMinimaModalCloseButton.addEventListener('click', () => {
             notaMinimaModal.style.display = 'none';
             if (resolveNotaMinimaPromise) {
@@ -725,9 +752,10 @@ Aquí tienes el archivo `index.html` completo y listo. Por favor, **reemplaza to
                 }
 
                 let finalNote = parseFloat(parsedIaResult.nota_sugerida_ia); // Asegurar que es un número
-                const iaCalculatedNoteVal = finalNote;
+                //const iaCalculatedNoteVal = finalNote; // Esta línea ya no es necesaria si no se usa la lógica del modal
 
-                // Lógica para mostrar el modal si la nota de la IA es menor que la mínima
+                // ******** MODIFICACIÓN CLAVE: Lógica del modal de nota mínima TEMPORALMENTE DESHABILITADA ********
+                /*
                 if (iaCalculatedNoteVal < notaMinima) {
                     const userConfirmed = await showNotaMinimaConfirmation(iaCalculatedNoteVal, notaMinima);
 
@@ -741,6 +769,11 @@ Aquí tienes el archivo `index.html` completo y listo. Por favor, **reemplaza to
                 } else {
                     notaMinimaWarning.style.display = 'none'; // Asegurarse de que la advertencia no se muestre si no es necesario
                 }
+                */
+                // ******** FIN DE LA MODIFICACIÓN CLAVE ********
+
+                // Asegurarse de que la advertencia de nota mínima no se muestre si la lógica está comentada
+                notaMinimaWarning.style.display = 'none';
 
 
                 // Add the final note to the parsed result
@@ -1438,3 +1471,4 @@ Aquí tienes el archivo `index.html` completo y listo. Por favor, **reemplaza to
     </script>
 </body>
 </html>
+```
