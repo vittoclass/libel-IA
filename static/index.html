@@ -267,6 +267,18 @@
         .file-item .file-actions button:hover {
             text-decoration: underline;
         }
+        .file-item .file-preview {
+            max-width: 50px;
+            max-height: 50px;
+            margin-right: 10px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+        .file-item .file-info {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+        }
 
         /* Camera */
         #camera-feed {
@@ -581,6 +593,7 @@
         let uploadedFiles = []; // Almacena los File objects originales subidos
         let processedBatchStudentsData = []; // Almacena la data de los estudiantes para el lote
         let cameraFacingMode = 'environment'; // 'user' para frontal, 'environment' para trasera
+        let nameCorrections = {}; // Almacena correcciones de nombres: { "nombre_detectado_lower": "Nombre Corregido" }
 
         let evaluationsHistory = [];
         let currentEvaluationData = null;
@@ -648,8 +661,44 @@
         const applyBonusButton = document.getElementById("applyBonus");
         const bonusStatusDiv = document.getElementById("bonusStatus");
 
-        // Variable global para almacenar el "resolver" de la promesa del modal (Se mantiene aunque la lógica esté comentada)
-        let resolveNotaMinimaPromise;
+
+        // --- Lógica de persistencia de correcciones de nombres ---
+        // Cargar correcciones al inicio
+        document.addEventListener('DOMContentLoaded', () => {
+            loadEvaluationsHistory(); // Tu función existente para cargar historial
+            const storedNameCorrections = localStorage.getItem('libelia_name_corrections');
+            if (storedNameCorrections) {
+                nameCorrections = JSON.parse(storedNameCorrections);
+            }
+        });
+
+        // Guardar correcciones cuando se modifiquen
+        function saveNameCorrections() {
+            localStorage.setItem('libelia_name_corrections', JSON.stringify(nameCorrections));
+        }
+
+        // Aplicar corrección guardada o almacenar nueva corrección
+        function applyOrStoreNameCorrection(detectedName, correctedName) {
+            const detectedLower = detectedName.toLowerCase().trim();
+            const correctedLower = correctedName.toLowerCase().trim();
+
+            if (detectedLower === correctedLower || detectedLower === "nombre no detectado" || detectedLower === "error al extraer nombre") {
+                // Si no hay cambio real o el nombre detectado es un placeholder, no guardamos la corrección.
+                // Sin embargo, si un placeholder se convierte en nombre real, SÍ lo guardamos.
+                if (detectedLower !== correctedLower && correctedLower !== "" && detectedLower.startsWith("nombre no detectado") || detectedLower.startsWith("error al extraer nombre")) {
+                     nameCorrections[correctedLower] = correctedName; // Guardar el nombre corregido
+                     saveNameCorrections();
+                }
+                return;
+            }
+
+            // Si el nombre detectado es real y fue corregido
+            if (nameCorrections[detectedLower] !== correctedName) {
+                nameCorrections[detectedLower] = correctedName;
+                saveNameCorrections();
+            }
+        }
+
 
         // Función para abrir el modal de confirmación de nota mínima (COMENTADA, NO SE LLAMA)
         /*
@@ -705,7 +754,7 @@
             });
         });
 
-        // --- Form Evaluation ---
+        // --- Form Evaluation (para evaluación individual) ---
         flexibilidadIAInput.addEventListener("input", () => {
             flexibilidadValueSpan.textContent = flexibilidadIAInput.value;
         });
@@ -898,8 +947,24 @@
             uploadedFiles.forEach((file, index) => {
                 const listItem = document.createElement("li");
                 listItem.className = "file-item";
+                let filePreviewHtml = '';
+                if (file.type.startsWith('image/')) {
+                    // Solo para previsualización, no se usa para OCR/procesamiento real
+                    const imgUrl = URL.createObjectURL(file);
+                    filePreviewHtml = `<img src="${imgUrl}" class="file-preview" alt="Preview">`;
+                } else if (file.type === 'application/pdf') {
+                    filePreviewHtml = `<i class="fas fa-file-pdf file-preview" style="font-size: 40px; color: #dc3545;"></i>`;
+                } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                    filePreviewHtml = `<i class="fas fa-file-word file-preview" style="font-size: 40px; color: #007bff;"></i>`;
+                } else {
+                    filePreviewHtml = `<i class="fas fa-file file-preview" style="font-size: 40px; color: #6c757d;"></i>`;
+                }
+
                 listItem.innerHTML = `
-                    <span class="file-name">${file.name}</span>
+                    <div class="file-info">
+                        ${filePreviewHtml}
+                        <span class="file-name">${file.name}</span>
+                    </div>
                     <span class="file-status">Listo</span>
                     <div class="file-actions">
                         <button data-index="${index}" class="remove-file-button"><i class="fas fa-times-circle"></i></button>
@@ -982,14 +1047,23 @@
                 // Intentar extraer el nombre del estudiante con IA
                 let detectedName = "Nombre no detectado";
                 try {
-                    detectedName = await extractStudentNameFromText(combinedTextForStudent);
+                    const extracted = await extractStudentNameFromText(combinedTextForStudent);
+                    detectedName = extracted;
                 } catch (error) {
                     console.warn("Error al extraer nombre con IA:", error);
                 }
 
+                // Aplicar corrección de nombre si existe
+                let finalStudentName = detectedName;
+                if (nameCorrections[detectedName.toLowerCase()]) { // Si el nombre detectado (en minúsculas) tiene una corrección guardada
+                    finalStudentName = nameCorrections[detectedName.toLowerCase()];
+                }
+
+
                 processedBatchStudentsData.push({
                     id: studentId,
-                    name: detectedName,
+                    originalDetectedName: detectedName, // Guardar el nombre original detectado por IA
+                    name: finalStudentName, // Usar el nombre corregido si aplica
                     text: combinedTextForStudent.trim(),
                     files: studentFiles.map(f => f.name)
                 });
@@ -1012,21 +1086,46 @@
                     throw new Error(errorData.error || `Error OCR: ${res.status}`);
                 }
                 const ocrResult = await res.json();
-                return ocrResult.readResults ? ocrResult.readResults.map(r => r.content).join("\n") : '';
+                // Azure OCR for images/PDFs
+                // Check for v3.2/ocr format (lines.text) or v3.2/read/analyze (readResults.content)
+                if (ocrResult.readResults && Array.isArray(ocrResult.readResults)) {
+                    // v3.2/read/analyze format
+                    return ocrResult.readResults.map(page => page.lines.map(line => line.text).join('\n')).join('\n\n');
+                } else if (ocrResult.regions && Array.isArray(ocrResult.regions)) {
+                    // v3.2/ocr (synchronous) format
+                    return ocrResult.regions.map(region => region.lines.map(line => line.words.map(w => w.text).join(' ')).join('\n')).join('\n\n');
+                }
+                // Fallback for v4.0 or other structures
+                if (ocrResult.analyzeResult && ocrResult.analyzeResult.readResults) {
+                     return ocrResult.analyzeResult.readResults.map(page => page.content).join('\n\n');
+                }
+                return `[No se detectó texto en ${file.name}]`;
             } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
                 const arrayBuffer = await file.arrayBuffer();
                 const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
                 return result.value;
             }
-            return `[Contenido no extraíble para ${file.type}]`;
+            return `[Contenido no extraíble de ${file.name} - Tipo: ${file.type}]`;
         }
 
         async function extractStudentNameFromText(text) {
             if (!text.trim()) return "Nombre no detectado";
-            const prompt = `Tu tarea es encontrar el nombre del estudiante en este texto. Busca etiquetas explícitas como 'Nombre:', 'Estudiante:', o 'Alumno:'. El nombre suele estar al principio del documento. Ignora proactivamente nombres que parezcan ser del profesor (asociados a 'Profesor/a:'). Si encuentras un nombre claro y sin ambigüedades, devuélvelo. Si no estás seguro o encuentras múltiples candidatos, devuelve una cadena vacía. Devuelve solo el nombre.\n\nTEXTO:\n"""${text.substring(0, 2000)}..."""`; // Limitar texto para IA
+            // Tomar solo los primeros 2000 caracteres para la extracción del nombre para no exceder límites de token
+            const textSnippet = text.substring(0, 2000);
+            const prompt = `Tu tarea es encontrar el nombre del estudiante en el siguiente texto.
+            Busca etiquetas explícitas como 'Nombre:', 'Estudiante:', 'Alumno/a:', o patrones donde el nombre aparece al principio de un documento de evaluación.
+            Ignora proactivamente nombres que parezcan ser del profesor (ej. si están cerca de 'Profesor/a:').
+            Si encuentras un nombre claro, único y sin ambigüedades, devuélvelo.
+            Si no estás 100% seguro de un único nombre, devuelve la frase "Nombre no detectado".
+            Devuelve SOLO el nombre o la frase "Nombre no detectado", sin explicaciones adicionales.
+
+            TEXTO:
+            """
+            ${textSnippet}
+            """`;
             
             const dataToSend = {
-                alumno: "Extractor de Nombre IA", // Dummy
+                alumno: "Extractor de Nombre IA", // Dummy para la estructura del endpoint
                 evaluacion: "", // Dummy
                 rubrica: "", // Dummy
                 curso: "", // Dummy
@@ -1048,7 +1147,11 @@
                 }
                 const result = await res.json();
                 const name = result.choices[0].message.content.trim();
-                return name || "Nombre no detectado"; // Devolver "Nombre no detectado" si la IA devuelve vacío
+                // Devolver el nombre o un placeholder si la IA devuelve vacío o algo irrelevante
+                if (!name || name.toLowerCase().includes("no detectado") || name.length > 50) { // Límite para nombres
+                    return "Nombre no detectado";
+                }
+                return name;
             } catch (error) {
                 console.error("Error al llamar a la IA para extraer nombre:", error);
                 return "Error al extraer nombre";
@@ -1057,13 +1160,18 @@
 
         function renderBatchReviewSection() {
             studentBatchContainer.innerHTML = '';
+            if (processedBatchStudentsData.length === 0) {
+                studentBatchContainer.innerHTML = '<p>No hay estudiantes procesados en el lote.</p>';
+                return;
+            }
+
             processedBatchStudentsData.forEach((student, index) => {
                 const studentBlock = document.createElement('div');
                 studentBlock.className = 'batch-review-item';
                 studentBlock.innerHTML = `
                     <h3>Estudiante ${index + 1}</h3>
                     <label for="studentName-${student.id}">Nombre del Estudiante:</label>
-                    <input type="text" id="studentName-${student.id}" value="${student.name}" data-student-id="${student.id}">
+                    <input type="text" id="studentName-${student.id}" value="${student.name}" data-student-id="${student.id}" data-original-detected-name="${student.originalDetectedName}">
                     <label for="studentText-${student.id}">Texto Extraído (Editable):</label>
                     <textarea id="studentText-${student.id}" rows="10">${student.text}</textarea>
                     <div class="file-list-preview">Archivos: ${student.files.join(', ')}</div>
@@ -1071,10 +1179,22 @@
                 studentBatchContainer.appendChild(studentBlock);
 
                 // Sincronizar cambios en los campos editables
-                document.getElementById(`studentName-${student.id}`).addEventListener('input', (e) => {
+                const nameInput = document.getElementById(`studentName-${student.id}`);
+                const textInput = document.getElementById(`studentText-${student.id}`);
+
+                nameInput.addEventListener('input', (e) => {
                     student.name = e.target.value;
                 });
-                document.getElementById(`studentText-${student.id}`).addEventListener('input', (e) => {
+                // Guardar la corrección del nombre cuando el campo pierde el foco
+                nameInput.addEventListener('blur', (e) => {
+                    const correctedName = e.target.value.trim();
+                    const originalDetectedName = e.target.dataset.originalDetectedName;
+                    if (correctedName && correctedName.toLowerCase() !== originalDetectedName.toLowerCase()) {
+                        applyOrStoreNameCorrection(originalDetectedName, correctedName);
+                    }
+                });
+
+                textInput.addEventListener('input', (e) => {
                     student.text = e.target.value;
                 });
             });
@@ -1086,7 +1206,7 @@
                 return;
             }
 
-            const confirmEvaluate = confirm(`¿Estás seguro de que quieres evaluar ${processedBatchStudentsData.length} estudiantes en lote?`);
+            const confirmEvaluate = confirm(`¿Estás seguro de que quieres evaluar ${processedBatchStudentsData.length} estudiantes en lote? Esto consumirá tokens de la API.`);
             if (!confirmEvaluate) return;
 
             resultadoDiv.textContent = "Iniciando evaluación del lote...";
@@ -1102,10 +1222,34 @@
             }
 
             for (const student of processedBatchStudentsData) {
+                // Pre-validar nombre del estudiante en el lote
+                if (!student.name || student.name.trim() === "" || student.name.toLowerCase().includes("no detectado") || student.name.toLowerCase().includes("error al extraer")) {
+                    resultadoDiv.textContent += `\n❌ SALTO: El estudiante con ID ${student.id} tiene un nombre inválido ('${student.name}'). Por favor, corrígelo manualmente.`;
+                    continue; // Saltar a este estudiante si el nombre no es válido
+                }
+
                 resultadoDiv.textContent += `\nEvaluando a ${student.name}...`;
                 try {
+                    // Lógica de contexto pedagógico (duplicada de la evaluación individual para lote)
+                    let contextPrompt = "";
+                    if (commonCurso.toLowerCase().includes("diferenciada") || commonNombrePrueba.toLowerCase().includes("diferenciada") ||
+                        commonCurso.toLowerCase().includes("pie") || commonNombrePrueba.toLowerCase().includes("pie") ||
+                        commonCurso.toLowerCase().includes("adecuación") || commonNombrePrueba.toLowerCase().includes("adecuación")) {
+                        contextPrompt = "Considera que esta es una evaluación con consideraciones especiales (ej. diferenciada, de apoyo). Sé más empático y enfócate en el progreso y el esfuerzo, no solo en el resultado final. Ajusta tu lenguaje para ser alentador y constructivo.";
+                    } else if (commonCurso.toLowerCase().includes("superior") || commonNombrePrueba.toLowerCase().includes("universidad") ||
+                               commonNombrePrueba.toLowerCase().includes("tesis") || commonNombrePrueba.toLowerCase().includes("investigación avanzada")) {
+                        contextPrompt = "Considera que esta es una evaluación de nivel superior. Espera un análisis crítico profundo, argumentación sólida y un lenguaje académico. Sé riguroso en tu feedback.";
+                    } else if (commonCurso.toLowerCase().includes("inicial") || commonNombrePrueba.toLowerCase().includes("prekinder") ||
+                               commonNombrePrueba.toLowerCase().includes("kinder") || commonNombrePrueba.toLowerCase().includes("juego") ||
+                               commonNombrePrueba.toLowerCase().includes("actividad lúdica")) {
+                        contextPrompt = "Considera que esta es una evaluación para educación inicial. Enfócate en el desarrollo de habilidades básicas, la participación y la creatividad. Usa un lenguaje muy simple y positivo.";
+                    }
+
+
                     const fullPrompt = `Eres un evaluador pedagógico IA llamado LibelIA. Tu objetivo es evaluar el texto de un estudiante de forma justa, constructiva y empática, siguiendo una rúbrica específica.
                     Flexibilidad de la IA en la evaluación (0=estricta, 10=flexible): ${commonFlexibilidadIA}. Ajusta tu rigor según este valor.
+
+                    ${contextPrompt}
 
                     EVALUACIÓN SOLICITADA:
                     Alumno: ${student.name}
@@ -1132,7 +1276,7 @@
 
                     const dataToSend = {
                         alumno: student.name,
-                        evaluacion: student.text,
+                        evaluacion: student.text, // Texto específico del estudiante en el lote
                         rubrica: commonRubrica,
                         curso: commonCurso,
                         nombrePrueba: commonNombrePrueba,
@@ -1160,7 +1304,7 @@
                     } catch (jsonError) {
                         resultadoDiv.textContent += `\nError al parsear JSON de la IA para ${student.name}: ${jsonError.message}\n${iaResult.substring(0, 200)}...`;
                         console.error(`Error al parsear JSON para ${student.name}:`, jsonError);
-                        continue; // Pasar al siguiente estudiante
+                        continue; // Pasar al siguiente estudiante si el JSON es inválido
                     }
 
                     let finalNote = parseFloat(parsedIaResult.nota_sugerida_ia);
@@ -1187,6 +1331,7 @@
             uploadedFiles = []; // Limpiar archivos cargados
             renderUploadedFilesList(); // Limpiar lista de archivos
             processBatchFilesButton.disabled = true; // Deshabilitar botón de procesar lote
+            ocrBatchStatusDiv.style.display = 'none'; // Ocultar estado de OCR por lotes
         });
 
 
@@ -1196,6 +1341,10 @@
 
         startCameraButton.addEventListener('click', async () => {
             try {
+                // Si ya hay un stream, detenerlo antes de iniciar uno nuevo
+                if (currentCameraStream) {
+                    currentCameraStream.getTracks().forEach(track => track.stop());
+                }
                 currentCameraStream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: cameraFacingMode } // Usa la variable de modo
                 });
@@ -1342,7 +1491,7 @@
             };
 
             try {
-                const res = await fetch("/evaluar", {
+                const res = await fetch("/evaluar", { // Reusamos el endpoint de evaluar
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(dataToSend)
