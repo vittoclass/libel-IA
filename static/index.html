@@ -1,16 +1,3 @@
-¡Absolutamente\! Mis disculpas por la confusión. Entiendo perfectamente que los botones del modal de "Confirmar Nota Mínima" te están impidiendo usar la aplicación y probarla. Mi error fue pensar que te referías a otras secciones.
-
-Tienes toda la razón, lo más importante ahora mismo es que puedas **probar la aplicación sin ese bloqueo**. Vamos a **deshabilitar completamente la lógica de ese modal** para que no aparezca y puedas continuar.
-
-Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal de nota mínima completamente comentada (desactivada). Por favor, **reemplaza TODO el contenido de tu archivo `index.html` con este código.**
-
-**Cambio clave en este código:**
-
-  * He **comentado (desactivado)** **toda la sección JavaScript relacionada con el modal de `notaMinimaModal` y la lógica de `if (iaCalculatedNoteVal < notaMinima)`** dentro del `evalForm.addEventListener("submit")`. Esto significa que el modal no se mostrará en ninguna circunstancia, y la nota final siempre será la que la IA sugiera (o la que se calcule) sin ninguna confirmación adicional.
-
-<!-- end list -->
-
-```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -169,7 +156,7 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
 
         /* Modal */
         .modal {
-            display: none; /* Hidden by default, now it will *never* be set to flex by JS */
+            display: none; /* Hidden by default, changed to flex by JS */
             position: fixed; /* Stay in place */
             z-index: 1000; /* Sit on top */
             left: 0;
@@ -340,6 +327,36 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
             width: 100%;
             margin-bottom: 2em;
         }
+
+        /* Batch Processing Styles */
+        .batch-config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1em;
+            margin-bottom: 1.5em;
+        }
+        .batch-review-item {
+            background: #fdfdfd;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5em;
+            margin-bottom: 1em;
+            box-shadow: var(--shadow-light);
+        }
+        .batch-review-item h3 {
+            margin-top: 0;
+            color: var(--secondary-color);
+        }
+        .batch-review-item textarea {
+            width: calc(100% - 20px);
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+        .batch-review-item .file-list-preview {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 0.5em;
+        }
     </style>
 </head>
 <body>
@@ -403,8 +420,8 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
                 <h2>📷 Extraer Texto desde Imagen/Documento (OCR)</h2>
                 <div class="drop-area" id="drop-area">
                     <i class="fas fa-cloud-upload-alt"></i>
-                    <p>Arrastra y suelta imágenes o documentos aquí, o haz clic para seleccionar.</p>
-                    <input type="file" id="imagenDocumento" name="imagenDocumento" accept="image/*,.pdf,.docx" multiple hidden>
+                    <p>Arrastra y suelta imágenes, PDFs o DOCX aquí, o haz clic para seleccionar.</p>
+                    <input type="file" id="imagenDocumento" name="imagenDocumento" accept="image/*,.pdf,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple hidden>
                     <button type="button" id="selectFileButton"><i class="fas fa-folder-open"></i> Seleccionar Archivos</button>
                 </div>
                 <div id="camera-section" style="margin-top: 1.5em;">
@@ -414,6 +431,7 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
                         <button id="start-camera"><i class="fas fa-video"></i> Iniciar Cámara</button>
                         <button id="take-photo" disabled><i class="fas fa-camera"></i> Tomar Foto</button>
                         <button id="stop-camera" disabled><i class="fas fa-stop-circle"></i> Detener Cámara</button>
+                        <button id="toggle-camera" disabled><i class="fas fa-sync-alt"></i> Cambiar Cámara</button>
                     </div>
                     <canvas id="camera-canvas" style="display: none;"></canvas>
                     <img id="photo-preview" src="" alt="Previsualización de foto" style="display: none;">
@@ -423,8 +441,16 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
                     <h4>Archivos Cargados:</h4>
                     <ul id="uploaded-files-ul"></ul>
                 </div>
-                <button id="processScannedFiles" disabled><i class="fas fa-cogs"></i> Procesar Archivos Escaneados</button>
-                <div id="ocrResultado" class="output"></div>
+                <button id="processBatchFilesButton" disabled><i class="fas fa-cogs"></i> Procesar Lote de Archivos</button>
+                <div id="ocrBatchStatus" class="output" style="display: none;"></div>
+            </section>
+
+            <section id="batchReviewSection" style="margin-top: 3em; display: none;">
+                <h2>📝 Revisión del Lote de Estudiantes</h2>
+                <p>Verifica y edita el nombre del estudiante y el texto extraído antes de evaluar.</p>
+                <div id="studentBatchContainer">
+                    </div>
+                <button id="evaluateBatchButton" style="margin-top: 1em;"><i class="fas fa-paper-plane"></i> Evaluar Lote Completo</button>
             </section>
 
             <section style="margin-top: 3em;">
@@ -432,7 +458,9 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
                 <form id="rubricAssistantForm">
                     <label for="rubricPrompt">Describe la rúbrica que necesitas o el tema:</label>
                     <textarea id="rubricPrompt" rows="4" placeholder="Ej: 'Genera una rúbrica para un ensayo sobre la Revolución Francesa, con criterios de contenido, estructura y gramática, escala de 1 a 5.'"></textarea>
-                    <button type="submit"><i class="fas fa-magic"></i> Generar/Optimizar Rúbrica</button>
+                    <label for="rubricFileInput" style="margin-top: 1em;">O sube un archivo de rúbrica (TXT, DOCX, PDF):</label>
+                    <input type="file" id="rubricFileInput" accept=".txt,.docx,.pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                    <button type="submit" style="margin-top: 1em;"><i class="fas fa-magic"></i> Generar/Optimizar Rúbrica</button>
                 </form>
                 <div id="rubricAssistantOutput" class="output"></div>
             </section>
@@ -522,32 +550,56 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
         </div>
     </div>
 
+    <div id="batchConfigModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeBatchConfigModal">&times;</span>
+            <h2>Configurar Lote de Archivos</h2>
+            <p>Hemos detectado <strong id="totalFilesInBatch">0</strong> archivos. Por favor, define cómo agruparlos por estudiante.</p>
+            <div class="batch-config-grid">
+                <div>
+                    <label for="filesPerStudent">Archivos por Estudiante:</label>
+                    <input type="number" id="filesPerStudent" min="1" value="1">
+                </div>
+                <div>
+                    <label for="totalStudentsInBatch">Total de Estudiantes:</label>
+                    <input type="number" id="totalStudentsInBatch" min="1" readonly>
+                </div>
+            </div>
+            <p style="font-size: 0.9em; color: #666;">(Ajusta "Archivos por Estudiante" para ver el total de estudiantes estimado.)</p>
+            <button id="confirmBatchConfig"><i class="fas fa-check-circle"></i> Confirmar y Procesar Lote</button>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.15/mammoth.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
         // Global state
-        let currentStream;
+        let currentStream = null;
         let photoTakenBlob = null;
-        let processedFiles = {}; // Para almacenar el texto extraído de los archivos escaneados
-        let evaluationsHistory = []; // Array para almacenar el historial de evaluaciones
-        let currentEvaluationData = null; // Para guardar la última evaluación procesada
-        let chartInstances = {}; // Para gestionar instancias de Chart.js
+        let uploadedFiles = []; // Almacena los File objects originales subidos
+        let processedBatchStudentsData = []; // Almacena la data de los estudiantes para el lote
+        let cameraFacingMode = 'environment'; // 'user' para frontal, 'environment' para trasera
+
+        let evaluationsHistory = [];
+        let currentEvaluationData = null;
+        let chartInstances = {};
 
         // DOM Elements
         const evalForm = document.getElementById("evalForm");
         const resultadoDiv = document.getElementById("resultado");
-        const ocrResultadoDiv = document.getElementById("ocrResultado");
+        const ocrResultadoDiv = document.getElementById("ocrResultado"); // Usado para mostrar resultado OCR individual o último lote
         const dropArea = document.getElementById("drop-area");
         const imagenDocumentoInput = document.getElementById("imagenDocumento");
         const selectFileButton = document.getElementById("selectFileButton");
         const uploadedFilesUl = document.getElementById("uploaded-files-ul");
-        const processScannedFilesButton = document.getElementById("processScannedFiles");
+        const processBatchFilesButton = document.getElementById("processBatchFilesButton"); // Botón para procesar lote
         const cameraFeed = document.getElementById("camera-feed");
         const startCameraButton = document.getElementById("start-camera");
         const takePhotoButton = document.getElementById("take-photo");
         const stopCameraButton = document.getElementById("stop-camera");
+        const toggleCameraButton = document.getElementById("toggle-camera"); // Nuevo botón para cambiar cámara
         const cameraCanvas = document.getElementById("camera-canvas");
         const photoPreview = document.getElementById("photo-preview");
         const imageQualityMessage = document.getElementById("imageQualityMessage");
@@ -558,7 +610,7 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
         const flexibilidadIAInput = document.getElementById("flexibilidadIA");
         const flexibilidadValueSpan = document.getElementById("flexibilidadValue");
 
-        // Referencias a los elementos del modal de nota mínima (SE MANTIENEN AQUÍ)
+        // Elementos del Modal de Nota Mínima (se mantienen, pero su lógica está comentada)
         const notaMinimaModal = document.getElementById("notaMinimaModal");
         const iaCalculatedNoteSpan = document.getElementById("iaCalculatedNote");
         const guaranteedNoteSpan = document.getElementById("guaranteedNote");
@@ -566,9 +618,24 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
         const cancelNotaMinimaButton = document.getElementById("cancelNotaMinima");
         const notaMinimaModalCloseButton = notaMinimaModal.querySelector('.close-button');
 
+        // Elementos del Modal de Configuración de Lote
+        const batchConfigModal = document.getElementById("batchConfigModal");
+        const closeBatchConfigModalButton = document.getElementById("closeBatchConfigModal");
+        const totalFilesInBatchSpan = document.getElementById("totalFilesInBatch");
+        const filesPerStudentInput = document.getElementById("filesPerStudent");
+        const totalStudentsInBatchInput = document.getElementById("totalStudentsInBatch");
+        const confirmBatchConfigButton = document.getElementById("confirmBatchConfig");
+
+        // Elementos de la Sección de Revisión de Lote
+        const batchReviewSection = document.getElementById("batchReviewSection");
+        const studentBatchContainer = document.getElementById("studentBatchContainer");
+        const evaluateBatchButton = document.getElementById("evaluateBatchButton");
+
         const historialListDiv = document.getElementById("historialList");
         const rubricAssistantForm = document.getElementById("rubricAssistantForm");
         const rubricAssistantOutput = document.getElementById("rubricAssistantOutput");
+        const rubricFileInput = document.getElementById("rubricFileInput"); // Input para subir rúbrica
+
         const analysisStudentNameInput = document.getElementById("analysisStudentName");
         const analysisCourseNameInput = document.getElementById("analysisCourseName");
         const filterAnalysisButton = document.getElementById("filterAnalysis");
@@ -581,44 +648,45 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
         const applyBonusButton = document.getElementById("applyBonus");
         const bonusStatusDiv = document.getElementById("bonusStatus");
 
-        // Variable global para almacenar el "resolver" de la promesa del modal
+        // Variable global para almacenar el "resolver" de la promesa del modal (Se mantiene aunque la lógica esté comentada)
         let resolveNotaMinimaPromise;
 
-        // Función para abrir el modal de confirmación de nota mínima (ESTA FUNCIÓN NO SE LLAMARÁ SI LA LÓGICA ESTÁ COMENTADA)
+        // Función para abrir el modal de confirmación de nota mínima (COMENTADA, NO SE LLAMA)
+        /*
         function showNotaMinimaConfirmation(iaNote, minNote) {
             iaCalculatedNoteSpan.textContent = iaNote.toFixed(1);
             guaranteedNoteSpan.textContent = minNote.toFixed(1);
-            notaMinimaModal.style.display = 'flex'; // Mostrar el modal
-            notaMinimaModal.style.alignItems = 'center'; // Centrar verticalmente
-            notaMinimaModal.style.justifyContent = 'center'; // Centrar horizontalmente
+            notaMinimaModal.style.display = 'flex';
+            notaMinimaModal.style.alignItems = 'center';
+            notaMinimaModal.style.justifyContent = 'center';
 
             return new Promise(resolve => {
-                resolveNotaMinimaPromise = resolve; // Guardar el resolver para usarlo desde los manejadores de clic
+                resolveNotaMinimaPromise = resolve;
             });
         }
+        */
 
-        // Manejadores de clic para los botones del modal (SE MANTIENEN, PERO NO TENDRÁN EFECTO SI EL MODAL NUNCA SE ABRE POR LÓGICA)
+        // Manejadores de clic para los botones del modal de nota mínima (SE MANTIENEN LOS LISTENERS, PERO NO TENDRÁN EFECTO SI EL MODAL NUNCA SE ABRE)
         confirmNotaMinimaButton.addEventListener('click', () => {
             notaMinimaModal.style.display = 'none';
-            if (resolveNotaMinimaPromise) {
-                resolveNotaMinimaPromise(true); // Resuelve la promesa con 'true'
+            if (resolveNotaMinimaPromise) { // Este if es solo para evitar errores si la promesa fuera nula por alguna razón
+                resolveNotaMinimaPromise(true);
             }
         });
 
         cancelNotaMinimaButton.addEventListener('click', () => {
             notaMinimaModal.style.display = 'none';
             if (resolveNotaMinimaPromise) {
-                resolveNotaMinimaPromise(false); // Resuelve la promesa con 'false'
+                resolveNotaMinimaPromise(false);
             }
         });
 
         notaMinimaModalCloseButton.addEventListener('click', () => {
             notaMinimaModal.style.display = 'none';
             if (resolveNotaMinimaPromise) {
-                resolveNotaMinimaPromise(false); // Considerar como "No" si el usuario cierra el modal
+                resolveNotaMinimaPromise(false);
             }
         });
-
 
         // --- Tab Navigation ---
         document.querySelectorAll('.tab-button').forEach(button => {
@@ -629,7 +697,6 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
                 button.classList.add('active');
                 document.getElementById(button.dataset.tab).classList.add('active');
 
-                // Reload history or analysis charts when tab is activated
                 if (button.dataset.tab === 'history-section') {
                     loadEvaluationsHistory();
                 } else if (button.dataset.tab === 'analysis-section') {
@@ -649,7 +716,7 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
                 notaMinimaOverrideWarning.style.display = 'block';
             } else {
                 notaMinimaOverrideWarning.style.display = 'none';
-                notaMinimaOverrideConfirmInput.value = ''; // Clear confirmation if above 4.0
+                notaMinimaOverrideConfirmInput.value = '';
             }
         });
 
@@ -673,7 +740,6 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
                 return;
             }
 
-            // Conciencia pedagógica contextual
             let contextPrompt = "";
             if (curso.toLowerCase().includes("diferenciada") || nombrePrueba.toLowerCase().includes("diferenciada") ||
                 curso.toLowerCase().includes("pie") || nombrePrueba.toLowerCase().includes("pie") ||
@@ -700,7 +766,7 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
             Rúbrica: ${rubrica}
             Texto del estudiante: ${evaluacion}
 
-            Por favor, proporciona tu feedback, un puntaje claro (ej: 5.5/7.0 o 65/100 si la rúbrica lo permite, o la nota chilena de 1.0 a 7.0 si se puede inferir de la rúbrica, o solo el puntaje si la rúbrica no da una escala clara), y un análisis detallado en formato JSON. El JSON debe tener las siguientes claves:
+            Por favor, proporciona tu feedback, un puntaje claro (ej: 5.5/7.0 o 65/100 si la rúbrica lo permite, o la nota chilena de 1.0 a 7.0 si se puede inferir del puntaje y escala), y un análisis detallado en formato JSON. El JSON debe tener las siguientes claves:
             {
                 "feedback_general": "Tu feedback constructivo y empático.",
                 "analisis_por_criterio": {
@@ -752,9 +818,9 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
                 }
 
                 let finalNote = parseFloat(parsedIaResult.nota_sugerida_ia); // Asegurar que es un número
-                //const iaCalculatedNoteVal = finalNote; // Esta línea ya no es necesaria si no se usa la lógica del modal
+                //const iaCalculatedNoteVal = finalNote; // No usada si el modal está comentado
 
-                // ******** MODIFICACIÓN CLAVE: Lógica del modal de nota mínima TEMPORALMENTE DESHABILITADA ********
+                // ******** Lógica del modal de nota mínima completamente deshabilitada ********
                 /*
                 if (iaCalculatedNoteVal < notaMinima) {
                     const userConfirmed = await showNotaMinimaConfirmation(iaCalculatedNoteVal, notaMinima);
@@ -770,7 +836,7 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
                     notaMinimaWarning.style.display = 'none'; // Asegurarse de que la advertencia no se muestre si no es necesario
                 }
                 */
-                // ******** FIN DE LA MODIFICACIÓN CLAVE ********
+                // ********* Fin de la lógica deshabilitada *********
 
                 // Asegurarse de que la advertencia de nota mínima no se muestre si la lógica está comentada
                 notaMinimaWarning.style.display = 'none';
@@ -794,7 +860,10 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
 
         // --- OCR and File Handling ---
         imagenDocumentoInput.addEventListener("change", (e) => {
-            handleScannedFiles(e.target.files);
+            const newFiles = Array.from(e.target.files);
+            uploadedFiles = uploadedFiles.concat(newFiles); // Acumular archivos
+            renderUploadedFilesList();
+            processBatchFilesButton.disabled = uploadedFiles.length === 0;
         });
 
         selectFileButton.addEventListener("click", () => {
@@ -813,169 +882,328 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
         dropArea.addEventListener("drop", (e) => {
             e.preventDefault();
             dropArea.classList.remove("highlight");
-            handleScannedFiles(e.dataTransfer.files);
+            const newFiles = Array.from(e.dataTransfer.files);
+            uploadedFiles = uploadedFiles.concat(newFiles); // Acumular archivos
+            renderUploadedFilesList();
+            processBatchFilesButton.disabled = uploadedFiles.length === 0;
         });
 
-        function handleScannedFiles(files) {
-            uploadedFilesUl.innerHTML = ''; // Clear previous list
-            processedFiles = {}; // Clear previous processed files
-
-            if (files.length === 0) {
-                processScannedFilesButton.disabled = true;
+        function renderUploadedFilesList() {
+            uploadedFilesUl.innerHTML = '';
+            if (uploadedFiles.length === 0) {
+                uploadedFilesUl.innerHTML = '<p>No hay archivos cargados.</p>';
+                processBatchFilesButton.disabled = true;
                 return;
             }
-
-            let allFilesValid = true;
-
-            Array.from(files).forEach(file => {
-                const reader = new FileReader();
-                const fileId = `${file.name}_${Date.now()}`; // Unique ID for the file
-
+            uploadedFiles.forEach((file, index) => {
                 const listItem = document.createElement("li");
                 listItem.className = "file-item";
                 listItem.innerHTML = `
                     <span class="file-name">${file.name}</span>
-                    <span class="file-status">Cargando...</span>
+                    <span class="file-status">Listo</span>
                     <div class="file-actions">
-                        <button data-id="${fileId}" class="remove-file-button">X</button>
+                        <button data-index="${index}" class="remove-file-button"><i class="fas fa-times-circle"></i></button>
                     </div>
                 `;
                 uploadedFilesUl.appendChild(listItem);
-
-                reader.onload = (e) => {
-                    if (file.type.startsWith('image/')) {
-                        const img = new Image();
-                        img.onload = () => {
-                            let qualityMessage = '';
-                            let isValid = true;
-                            if (img.width < 500 || img.height < 500) {
-                                qualityMessage = 'Advertencia: Baja resolución. El OCR podría no ser preciso.';
-                                isValid = false;
-                            } else if (file.size > 5 * 1024 * 1024) { // 5MB
-                                qualityMessage = 'Advertencia: Archivo muy grande. Puede tardar en procesar.';
-                            }
-                            listItem.querySelector('.file-status').textContent = qualityMessage || 'Listo para procesar';
-                            if (!isValid) {
-                                listItem.querySelector('.file-status').style.color = 'orange';
-                                allFilesValid = false; // Mark that at least one file is not ideal
-                            } else {
-                                listItem.querySelector('.file-status').style.color = 'green';
-                            }
-                            processedFiles[fileId] = { file: file, status: 'ready', type: 'image', dataUrl: e.target.result };
-                            checkAllFilesReady();
-                        };
-                        img.onerror = () => {
-                            listItem.querySelector('.file-status').textContent = 'Error al cargar imagen.';
-                            listItem.querySelector('.file-status').style.color = 'red';
-                            allFilesValid = false;
-                            checkAllFilesReady();
-                        };
-                        img.src = e.target.result;
-                    } else if (file.type === 'application/pdf') {
-                        listItem.querySelector('.file-status').textContent = 'Listo para procesar (PDF)';
-                        listItem.querySelector('.file-status').style.color = 'green';
-                        processedFiles[fileId] = { file: file, status: 'ready', type: 'pdf' };
-                        checkAllFilesReady();
-                    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                        listItem.querySelector('.file-status').textContent = 'Listo para procesar (DOCX)';
-                        listItem.querySelector('.file-status').style.color = 'green';
-                        processedFiles[fileId] = { file: file, status: 'ready', type: 'docx' };
-                        checkAllFilesReady();
-                    } else {
-                        listItem.querySelector('.file-status').textContent = 'Tipo de archivo no soportado.';
-                        listItem.querySelector('.file-status').style.color = 'red';
-                        allFilesValid = false;
-                        checkAllFilesReady();
-                    }
-                };
-                reader.readAsDataURL(file);
             });
-
-            function checkAllFilesReady() {
-                const allReady = Object.keys(processedFiles).length === files.length;
-                processScannedFilesButton.disabled = !allReady;
-            }
-
-            // Add event listener for remove buttons
-            uploadedFilesUl.addEventListener('click', (e) => {
-                if (e.target.classList.contains('remove-file-button')) {
-                    const idToRemove = e.target.dataset.id;
-                    delete processedFiles[idToRemove];
-                    e.target.closest('.file-item').remove();
-                    processScannedFilesButton.disabled = Object.keys(processedFiles).length === 0;
-                }
-            });
+            processBatchFilesButton.disabled = uploadedFiles.length === 0;
         }
 
-
-        processScannedFilesButton.addEventListener("click", async () => {
-            ocrResultadoDiv.textContent = "Procesando archivos...";
-            let combinedText = "";
-            let errorOccurred = false;
-
-            for (const fileId in processedFiles) {
-                const fileItem = processedFiles[fileId];
-                const listItem = uploadedFilesUl.querySelector(`[data-id="${fileId}"]`).closest('.file-item');
-                listItem.querySelector('.file-status').textContent = 'Procesando OCR...';
-                listItem.querySelector('.file-status').style.color = 'blue';
-
-                try {
-                    let text = '';
-                    if (fileItem.type === 'image' || fileItem.type === 'pdf') {
-                        // For images and PDFs, send to backend OCR
-                        const formData = new FormData();
-                        formData.append("file", fileItem.file);
-                        const res = await fetch("/ocr", {
-                            method: "POST",
-                            body: formData
-                        });
-                        if (!res.ok) {
-                            const errorData = await res.json();
-                            throw new Error(errorData.error || `Error OCR: ${res.status}`);
-                        }
-                        const ocrResult = await res.json();
-                        text = ocrResult.readResults ? ocrResult.readResults.map(r => r.content).join("\n") : '';
-                        if (!text && ocrResult.status === "succeeded" && ocrResult.analyzeResult && ocrResult.analyzeResult.readResults) {
-                            // Fallback for newer Azure Vision API response structure
-                            text = ocrResult.analyzeResult.readResults.map(r => r.content).join("\n");
-                        }
-                        if (!text) {
-                            text = "No se detectó texto en la imagen/PDF.";
-                        }
-                    } else if (fileItem.type === 'docx') {
-                        // For DOCX, use mammoth.js in frontend
-                        const arrayBuffer = await fileItem.file.arrayBuffer();
-                        const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
-                        text = result.value;
-                    }
-
-                    combinedText += `--- Texto de ${fileItem.file.name} ---\n${text}\n\n`;
-                    listItem.querySelector('.file-status').textContent = 'OCR Completado';
-                    listItem.querySelector('.file-status').style.color = 'green';
-
-                } catch (error) {
-                    errorOccurred = true;
-                    combinedText += `--- Error al procesar ${fileItem.file.name}: ${error.message} ---\n\n`;
-                    listItem.querySelector('.file-status').textContent = `Error: ${error.message}`;
-                    listItem.querySelector('.file-status').style.color = 'red';
-                    console.error(`Error processing ${fileItem.file.name}:`, error);
-                }
-            }
-            ocrResultadoDiv.textContent = combinedText;
-            document.getElementById("evaluacion").value = combinedText; // Populate evaluation textarea
-            if (errorOccurred) {
-                alert("Algunos archivos no pudieron ser procesados correctamente. Revisa el resultado del OCR.");
+        uploadedFilesUl.addEventListener('click', (e) => {
+            if (e.target.closest('.remove-file-button')) {
+                const indexToRemove = parseInt(e.target.closest('.remove-file-button').dataset.index);
+                uploadedFiles.splice(indexToRemove, 1); // Eliminar del array
+                renderUploadedFilesList(); // Volver a renderizar la lista
             }
         });
 
-        // --- Camera Functionality ---
+
+        // --- Batch Processing Logic ---
+        processBatchFilesButton.addEventListener("click", () => {
+            if (uploadedFiles.length === 0) {
+                alert("No hay archivos cargados para procesar en lote.");
+                return;
+            }
+            totalFilesInBatchSpan.textContent = uploadedFiles.length;
+            filesPerStudentInput.value = 1; // Reset to default
+            totalStudentsInBatchInput.value = uploadedFiles.length; // Default to 1 file per student
+            batchConfigModal.style.display = 'flex';
+        });
+
+        filesPerStudentInput.addEventListener('input', () => {
+            const filesPer = parseInt(filesPerStudentInput.value);
+            if (filesPer > 0) {
+                totalStudentsInBatchInput.value = Math.ceil(uploadedFiles.length / filesPer);
+            } else {
+                totalStudentsInBatchInput.value = 0;
+            }
+        });
+
+        closeBatchConfigModalButton.addEventListener('click', () => {
+            batchConfigModal.style.display = 'none';
+        });
+
+        confirmBatchConfigButton.addEventListener('click', async () => {
+            const filesPerStudent = parseInt(filesPerStudentInput.value);
+            if (filesPerStudent <= 0) {
+                alert("El número de archivos por estudiante debe ser al menos 1.");
+                return;
+            }
+            batchConfigModal.style.display = 'none';
+            await processBatch(filesPerStudent);
+        });
+
+        async function processBatch(filesPerStudent) {
+            batchReviewSection.style.display = 'block';
+            studentBatchContainer.innerHTML = '<h3>Procesando archivos para lote...</h3><p>Esto puede tardar unos minutos dependiendo del número de archivos y su complejidad.</p>';
+            processedBatchStudentsData = [];
+            let currentFileIndex = 0;
+            const ocrBatchStatusDiv = document.getElementById("ocrBatchStatus");
+            ocrBatchStatusDiv.style.display = 'block';
+            ocrBatchStatusDiv.textContent = "Iniciando procesamiento de lote...";
+
+            while (currentFileIndex < uploadedFiles.length) {
+                const studentFiles = uploadedFiles.slice(currentFileIndex, currentFileIndex + filesPerStudent);
+                const studentId = `batch-student-${Date.now()}-${processedBatchStudentsData.length}`;
+                ocrBatchStatusDiv.textContent += `\nProcesando estudiante ${processedBatchStudentsData.length + 1} (${studentFiles.length} archivos)...`;
+
+                let combinedTextForStudent = "";
+                for (const file of studentFiles) {
+                    try {
+                        const text = await readFileAndPerformOCR(file);
+                        combinedTextForStudent += `--- Contenido de ${file.name} ---\n${text}\n\n`;
+                    } catch (error) {
+                        combinedTextForStudent += `--- ERROR al procesar ${file.name}: ${error.message} ---\n\n`;
+                        console.error(`Error OCR para ${file.name}:`, error);
+                    }
+                }
+
+                // Intentar extraer el nombre del estudiante con IA
+                let detectedName = "Nombre no detectado";
+                try {
+                    detectedName = await extractStudentNameFromText(combinedTextForStudent);
+                } catch (error) {
+                    console.warn("Error al extraer nombre con IA:", error);
+                }
+
+                processedBatchStudentsData.push({
+                    id: studentId,
+                    name: detectedName,
+                    text: combinedTextForStudent.trim(),
+                    files: studentFiles.map(f => f.name)
+                });
+                currentFileIndex += filesPerStudent;
+            }
+            ocrBatchStatusDiv.textContent += "\nProcesamiento de OCR completado para todos los estudiantes. ¡Revisa el lote!";
+            renderBatchReviewSection();
+        }
+
+        async function readFileAndPerformOCR(file) {
+            if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+                const formData = new FormData();
+                formData.append("file", file);
+                const res = await fetch("/ocr", {
+                    method: "POST",
+                    body: formData
+                });
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.error || `Error OCR: ${res.status}`);
+                }
+                const ocrResult = await res.json();
+                return ocrResult.readResults ? ocrResult.readResults.map(r => r.content).join("\n") : '';
+            } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                const arrayBuffer = await file.arrayBuffer();
+                const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+                return result.value;
+            }
+            return `[Contenido no extraíble para ${file.type}]`;
+        }
+
+        async function extractStudentNameFromText(text) {
+            if (!text.trim()) return "Nombre no detectado";
+            const prompt = `Tu tarea es encontrar el nombre del estudiante en este texto. Busca etiquetas explícitas como 'Nombre:', 'Estudiante:', o 'Alumno:'. El nombre suele estar al principio del documento. Ignora proactivamente nombres que parezcan ser del profesor (asociados a 'Profesor/a:'). Si encuentras un nombre claro y sin ambigüedades, devuélvelo. Si no estás seguro o encuentras múltiples candidatos, devuelve una cadena vacía. Devuelve solo el nombre.\n\nTEXTO:\n"""${text.substring(0, 2000)}..."""`; // Limitar texto para IA
+            
+            const dataToSend = {
+                alumno: "Extractor de Nombre IA", // Dummy
+                evaluacion: "", // Dummy
+                rubrica: "", // Dummy
+                curso: "", // Dummy
+                nombrePrueba: "", // Dummy
+                flexibilidadIA: 0, // No aplica
+                notaMinima: 1.0, // No aplica
+                prompt: prompt
+            };
+
+            try {
+                const res = await fetch("/evaluar", { // Reusamos el endpoint de evaluar
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(dataToSend)
+                });
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+                }
+                const result = await res.json();
+                const name = result.choices[0].message.content.trim();
+                return name || "Nombre no detectado"; // Devolver "Nombre no detectado" si la IA devuelve vacío
+            } catch (error) {
+                console.error("Error al llamar a la IA para extraer nombre:", error);
+                return "Error al extraer nombre";
+            }
+        }
+
+        function renderBatchReviewSection() {
+            studentBatchContainer.innerHTML = '';
+            processedBatchStudentsData.forEach((student, index) => {
+                const studentBlock = document.createElement('div');
+                studentBlock.className = 'batch-review-item';
+                studentBlock.innerHTML = `
+                    <h3>Estudiante ${index + 1}</h3>
+                    <label for="studentName-${student.id}">Nombre del Estudiante:</label>
+                    <input type="text" id="studentName-${student.id}" value="${student.name}" data-student-id="${student.id}">
+                    <label for="studentText-${student.id}">Texto Extraído (Editable):</label>
+                    <textarea id="studentText-${student.id}" rows="10">${student.text}</textarea>
+                    <div class="file-list-preview">Archivos: ${student.files.join(', ')}</div>
+                `;
+                studentBatchContainer.appendChild(studentBlock);
+
+                // Sincronizar cambios en los campos editables
+                document.getElementById(`studentName-${student.id}`).addEventListener('input', (e) => {
+                    student.name = e.target.value;
+                });
+                document.getElementById(`studentText-${student.id}`).addEventListener('input', (e) => {
+                    student.text = e.target.value;
+                });
+            });
+        }
+
+        evaluateBatchButton.addEventListener('click', async () => {
+            if (processedBatchStudentsData.length === 0) {
+                alert("No hay estudiantes en el lote para evaluar.");
+                return;
+            }
+
+            const confirmEvaluate = confirm(`¿Estás seguro de que quieres evaluar ${processedBatchStudentsData.length} estudiantes en lote?`);
+            if (!confirmEvaluate) return;
+
+            resultadoDiv.textContent = "Iniciando evaluación del lote...";
+            const commonCurso = document.getElementById("curso").value;
+            const commonNombrePrueba = document.getElementById("nombrePrueba").value;
+            const commonRubrica = document.getElementById("rubrica").value;
+            const commonFlexibilidadIA = flexibilidadIAInput.value;
+            const commonNotaMinima = parseFloat(notaMinimaInput.value);
+
+            if (!commonCurso || !commonNombrePrueba || !commonRubrica) {
+                alert("Por favor, rellena los campos 'Curso', 'Nombre de la Prueba' y 'Rúbrica' en la sección principal de evaluación para el lote.");
+                return;
+            }
+
+            for (const student of processedBatchStudentsData) {
+                resultadoDiv.textContent += `\nEvaluando a ${student.name}...`;
+                try {
+                    const fullPrompt = `Eres un evaluador pedagógico IA llamado LibelIA. Tu objetivo es evaluar el texto de un estudiante de forma justa, constructiva y empática, siguiendo una rúbrica específica.
+                    Flexibilidad de la IA en la evaluación (0=estricta, 10=flexible): ${commonFlexibilidadIA}. Ajusta tu rigor según este valor.
+
+                    EVALUACIÓN SOLICITADA:
+                    Alumno: ${student.name}
+                    Curso/Asignatura: ${commonCurso}
+                    Nombre de la Prueba/Actividad: ${commonNombrePrueba}
+                    Rúbrica: ${commonRubrica}
+                    Texto del estudiante: ${student.text}
+
+                    Por favor, proporciona tu feedback, un puntaje claro (ej: 5.5/7.0 o 65/100 si la rúbrica lo permite, o la nota chilena de 1.0 a 7.0 si se puede inferir del puntaje y escala), y un análisis detallado en formato JSON. El JSON debe tener las siguientes claves:
+                    {
+                        "feedback_general": "Tu feedback constructivo y empático.",
+                        "analisis_por_criterio": {
+                            "Criterio 1": "Análisis y puntaje para el criterio 1",
+                            "Criterio 2": "Análisis y puntaje para el criterio 2"
+                            // ...
+                        },
+                        "puntaje_calculado_ia": "Puntaje numérico calculado por la IA (ej: 5.8, 65, etc.)",
+                        "escala_puntaje": "La escala total de la rúbrica (ej: 7.0, 100, etc.)",
+                        "nota_sugerida_ia": "La nota sugerida por la IA en escala 1.0 a 7.0 (si es aplicable y se puede inferir del puntaje y escala)",
+                        "sugerencias_mejora": ["Sugerencia 1", "Sugerencia 2"],
+                        "puntos_fuertes": ["Punto fuerte 1", "Punto fuerte 2"]
+                    }
+                    Asegúrate de que el JSON sea válido y completo.`;
+
+                    const dataToSend = {
+                        alumno: student.name,
+                        evaluacion: student.text,
+                        rubrica: commonRubrica,
+                        curso: commonCurso,
+                        nombrePrueba: commonNombrePrueba,
+                        flexibilidadIA: commonFlexibilidadIA,
+                        notaMinima: commonNotaMinima,
+                        prompt: fullPrompt
+                    };
+
+                    const res = await fetch("/evaluar", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(dataToSend)
+                    });
+
+                    if (!res.ok) {
+                        const errorData = await res.json();
+                        throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+                    }
+
+                    const result = await res.json();
+                    let iaResult = result.choices[0].message.content;
+                    let parsedIaResult;
+                    try {
+                        parsedIaResult = JSON.parse(iaResult);
+                    } catch (jsonError) {
+                        resultadoDiv.textContent += `\nError al parsear JSON de la IA para ${student.name}: ${jsonError.message}\n${iaResult.substring(0, 200)}...`;
+                        console.error(`Error al parsear JSON para ${student.name}:`, jsonError);
+                        continue; // Pasar al siguiente estudiante
+                    }
+
+                    let finalNote = parseFloat(parsedIaResult.nota_sugerida_ia);
+                    // Lógica del modal de nota mínima está deshabilitada temporalmente
+
+                    parsedIaResult.nota_final_aplicada = parseFloat(finalNote.toFixed(1));
+                    parsedIaResult.timestamp = Date.now();
+                    parsedIaResult.id = parsedIaResult.timestamp;
+                    parsedIaResult.curso = commonCurso; // Añadir curso y nombrePrueba para que se guarden bien
+                    parsedIaResult.nombrePrueba = commonNombrePrueba;
+                    parsedIaResult.flexibilidadIA = commonFlexibilidadIA; // Guardar config también
+                    parsedIaResult.notaMinima = commonNotaMinima;
+
+                    saveEvaluationToHistory(parsedIaResult);
+                    resultadoDiv.textContent += `\n✅ ${student.name} evaluado. Nota: ${parsedIaResult.nota_final_aplicada.toFixed(1)}`;
+
+                } catch (error) {
+                    resultadoDiv.textContent += `\n❌ ERROR al evaluar a ${student.name}: ${error.message}`;
+                    console.error(`Error al evaluar a ${student.name}:`, error);
+                }
+            }
+            resultadoDiv.textContent += "\n¡Evaluación de lote completada!";
+            batchReviewSection.style.display = 'none'; // Ocultar sección de revisión de lote
+            uploadedFiles = []; // Limpiar archivos cargados
+            renderUploadedFilesList(); // Limpiar lista de archivos
+            processBatchFilesButton.disabled = true; // Deshabilitar botón de procesar lote
+        });
+
+
+        // --- Camera Functionality (with toggle) ---
+        let currentCameraStream = null;
+        let isFrontCamera = true; // Empieza con la frontal (user facing)
+
         startCameraButton.addEventListener('click', async () => {
             try {
-                currentStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                cameraFeed.srcObject = currentStream;
+                currentCameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: cameraFacingMode } // Usa la variable de modo
+                });
+                cameraFeed.srcObject = currentCameraStream;
                 startCameraButton.disabled = true;
                 takePhotoButton.disabled = false;
                 stopCameraButton.disabled = false;
+                toggleCameraButton.disabled = false; // Habilitar el botón de cambiar cámara
                 imageQualityMessage.style.display = 'none';
                 photoPreview.style.display = 'none';
             } catch (err) {
@@ -986,8 +1214,36 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
             }
         });
 
+        toggleCameraButton.addEventListener('click', async () => {
+            // Detener el stream actual
+            if (currentCameraStream) {
+                currentCameraStream.getTracks().forEach(track => track.stop());
+            }
+
+            // Cambiar el modo de la cámara
+            cameraFacingMode = (cameraFacingMode === 'user') ? 'environment' : 'user';
+            isFrontCamera = !isFrontCamera; // Actualizar el estado de la cámara frontal/trasera
+
+            // Iniciar nuevo stream con el modo cambiado
+            try {
+                currentCameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: cameraFacingMode }
+                });
+                cameraFeed.srcObject = currentCameraStream;
+            } catch (err) {
+                console.error('Error al cambiar de cámara:', err);
+                imageQualityMessage.style.display = 'block';
+                imageQualityMessage.className = 'alert alert-error';
+                imageQualityMessage.innerHTML = `<i class="fas fa-times-circle"></i> Error al cambiar de cámara.`;
+                // Si falla, revertir al modo original e intentar de nuevo, o deshabilitar
+                cameraFacingMode = (cameraFacingMode === 'user') ? 'environment' : 'user'; // Revertir
+                isFrontCamera = !isFrontCamera; // Revertir estado
+                stopCameraButton.click(); // Detener si hay un problema
+            }
+        });
+
         takePhotoButton.addEventListener('click', () => {
-            if (!currentStream) return;
+            if (!currentCameraStream) return;
 
             const context = cameraCanvas.getContext('2d');
             cameraCanvas.width = cameraFeed.videoWidth;
@@ -1019,28 +1275,98 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
                     imageQualityMessage.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${qualityMsg}`;
                 }
 
-                // Automatically add to processed files for OCR
-                const file = new File([blob], `camera_photo_${Date.now()}.png`, { type: 'image/png' });
-                handleScannedFiles([file]);
+                // Añadir la foto capturada a la lista de archivos para el procesamiento por lotes
+                const file = new File([blob], `captura_camara_${Date.now()}.png`, { type: 'image/png' });
+                uploadedFiles.push(file); // Añadir al array de archivos subidos
+                renderUploadedFilesList(); // Actualizar la lista visible
+                processBatchFilesButton.disabled = false; // Habilitar botón de procesar lote
             }, 'image/png');
         });
 
         stopCameraButton.addEventListener('click', () => {
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
+            if (currentCameraStream) {
+                currentCameraStream.getTracks().forEach(track => track.stop());
                 cameraFeed.srcObject = null;
                 startCameraButton.disabled = false;
                 takePhotoButton.disabled = true;
                 stopCameraButton.disabled = true;
+                toggleCameraButton.disabled = true; // Deshabilitar el botón de cambiar cámara
                 imageQualityMessage.style.display = 'none';
+            }
+        });
+
+
+        // --- Rubric Assistant (mejorado para subir archivos de rúbrica) ---
+        rubricAssistantForm.addEventListener("submit", async e => {
+            e.preventDefault();
+            rubricAssistantOutput.textContent = "Generando rúbrica...";
+            const rubricPrompt = document.getElementById("rubricPrompt").value.trim();
+            const rubricFile = rubricFileInput.files[0];
+
+            let rubricTextContent = "";
+
+            if (rubricFile) {
+                rubricAssistantOutput.textContent = "Procesando archivo de rúbrica...";
+                try {
+                    rubricTextContent = await readFileAndPerformOCR(rubricFile); // Reutilizar la función de OCR
+                } catch (error) {
+                    rubricAssistantOutput.textContent = `Error al procesar archivo de rúbrica: ${error.message}`;
+                    console.error("Error al procesar archivo de rúbrica:", error);
+                    return;
+                }
+            } else if (rubricPrompt) {
+                rubricTextContent = rubricPrompt;
+            } else {
+                rubricAssistantOutput.textContent = "Por favor, introduce una descripción de rúbrica o sube un archivo.";
+                return;
+            }
+
+            const fullPrompt = `Eres un asistente de rúbricas IA. Tu tarea es generar o mejorar una rúbrica basada en la siguiente descripción. La rúbrica debe ser clara, concisa y con criterios medibles. Si se pide una escala, inclúyela.
+            Descripción de la rúbrica: ${rubricTextContent}
+
+            Formato de salida (solo la rúbrica):
+            [Nombre del Criterio 1] (Escala si aplica): [Descripción del criterio 1]
+            [Nombre del Criterio 2] (Escala si aplica): [Descripción del criterio 2]
+            ...
+            `;
+
+            const dataToSend = {
+                alumno: "Asistente de Rúbricas", // Dummy
+                evaluacion: "", // Dummy
+                rubrica: "", // Dummy
+                curso: "", // Dummy
+                nombrePrueba: "", // Dummy
+                flexibilidadIA: 5, // Default
+                notaMinima: 1.0, // Default
+                prompt: fullPrompt
+            };
+
+            try {
+                const res = await fetch("/evaluar", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(dataToSend)
+                });
+
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+                }
+
+                const result = await res.json();
+                rubricAssistantOutput.textContent = result.choices[0].message.content;
+                document.getElementById("rubrica").value = result.choices[0].message.content; // Rellenar campo principal
+            } catch (error) {
+                rubricAssistantOutput.textContent = `Error al generar rúbrica: ${error.message}`;
+                console.error("Error en asistente de rúbricas:", error);
             }
         });
 
         // --- Historial de Evaluaciones (Local Storage) ---
         function saveEvaluationToHistory(evaluationData) {
-            evaluationsHistory.unshift(evaluationData); // Add to the beginning
+            evaluationsHistory.unshift(evaluationData);
             localStorage.setItem('libelia_evaluations_history', JSON.stringify(evaluationsHistory));
-            loadEvaluationsHistory(); // Refresh the history list
+            loadEvaluationsHistory();
         }
 
         function loadEvaluationsHistory() {
@@ -1081,26 +1407,20 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
         function viewEvaluationDetails(id) {
             const evalData = evaluationsHistory.find(e => e.id == id);
             if (evalData) {
-                // Populate evalForm with this data
                 document.getElementById("alumno").value = evalData.alumno || '';
                 document.getElementById("curso").value = evalData.curso || '';
                 document.getElementById("nombrePrueba").value = evalData.nombrePrueba || '';
-                // Note: 'evaluacion' and 'rubrica' are not stored in the current JSON output from Mistral.
-                // If you want to retrieve them, you'd need to store them in the JSON from the backend.
-                // For now, we can show the result JSON in the output area.
-                document.getElementById("evaluacion").value = "Contenido original de la evaluación no disponible en el JSON guardado.";
-                document.getElementById("rubrica").value = "Rúbrica original no disponible en el JSON guardado.";
+                document.getElementById("evaluacion").value = evalData.evaluacion || "Contenido original no disponible en el JSON guardado."; // Si guardaste el texto original
+                document.getElementById("rubrica").value = evalData.rubrica || "Rúbrica original no disponible en el JSON guardado."; // Si guardaste la rúbrica original
 
-                // Populate settings for context
                 document.getElementById("flexibilidadIA").value = evalData.flexibilidadIA || 5;
                 document.getElementById("flexibilidadValue").textContent = evalData.flexibilidadIA || 5;
                 document.getElementById("notaMinima").value = evalData.notaMinima || 4.0;
-                // Clear override confirmation for loaded data
                 document.getElementById("notaMinimaOverrideConfirm").value = '';
                 document.getElementById("notaMinimaOverrideWarning").style.display = 'none';
 
                 resultadoDiv.textContent = JSON.stringify(evalData, null, 2);
-                document.querySelector('.tab-button[data-tab="eval-section"]').click(); // Switch to eval tab
+                document.querySelector('.tab-button[data-tab="eval-section"]').click();
             } else {
                 alert("Evaluación no encontrada.");
             }
@@ -1111,61 +1431,12 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
                 evaluationsHistory = evaluationsHistory.filter(e => e.id != id);
                 localStorage.setItem('libelia_evaluations_history', JSON.stringify(evaluationsHistory));
                 renderEvaluationsHistory();
-                renderAnalysisCharts(); // Re-render charts after deletion
+                renderAnalysisCharts();
             }
         }
 
-        // Load history on page load
         document.addEventListener('DOMContentLoaded', loadEvaluationsHistory);
 
-
-        // --- Rubric Assistant ---
-        rubricAssistantForm.addEventListener("submit", async e => {
-            e.preventDefault();
-            rubricAssistantOutput.textContent = "Generando rúbrica...";
-            const rubricPrompt = document.getElementById("rubricPrompt").value;
-
-            const fullPrompt = `Eres un asistente de rúbricas IA. Tu tarea es generar o mejorar una rúbrica basada en la siguiente descripción. La rúbrica debe ser clara, concisa y con criterios medibles. Si se pide una escala, inclúyela.
-            Descripción de la rúbrica: ${rubricPrompt}
-
-            Formato de salida (solo la rúbrica):
-            [Nombre del Criterio 1] (Escala si aplica): [Descripción del criterio 1]
-            [Nombre del Criterio 2] (Escala si aplica): [Descripción del criterio 2]
-            ...
-            `;
-
-            const dataToSend = {
-                alumno: "Asistente de Rúbricas", // Dummy data for backend
-                evaluacion: "",
-                rubrica: "",
-                curso: "",
-                nombrePrueba: "",
-                flexibilidadIA: 5,
-                notaMinima: 1.0,
-                prompt: fullPrompt
-            };
-
-            try {
-                const res = await fetch("/evaluar", { // Reusing eval endpoint for simplicity
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(dataToSend)
-                });
-
-                if (!res.ok) {
-                    const errorData = await res.json();
-                    throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
-                }
-
-                const result = await res.json();
-                // La respuesta de la IA para la rúbrica es el contenido del mensaje
-                rubricAssistantOutput.textContent = result.choices[0].message.content;
-                document.getElementById("rubrica").value = result.choices[0].message.content; // Populate rubric field
-            } catch (error) {
-                rubricAssistantOutput.textContent = `Error al generar rúbrica: ${error.message}`;
-                console.error("Error en asistente de rúbricas:", error);
-            }
-        });
 
         // --- Analysis and Portfolio ---
         filterAnalysisButton.addEventListener('click', renderAnalysisCharts);
@@ -1181,15 +1452,15 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
                 return matchesStudent && matchesCourse;
             });
 
-            // Destroy existing chart instances to prevent duplicates
             if (chartInstances.gradesChart) chartInstances.gradesChart.destroy();
             if (chartInstances.criteriaChart) chartInstances.criteriaChart.destroy();
 
+            const analysisResultsContainer = document.getElementById('analysisResults');
             if (filteredEvals.length === 0) {
-                document.getElementById('analysisResults').innerHTML = '<p>No hay datos para mostrar con los filtros aplicados.</p>';
+                analysisResultsContainer.innerHTML = '<p>No hay datos para mostrar con los filtros aplicados.</p>';
                 return;
             } else {
-                document.getElementById('analysisResults').innerHTML = `
+                analysisResultsContainer.innerHTML = `
                     <h3>Resumen de Notas</h3>
                     <div class="chart-container"><canvas id="gradesChart"></canvas></div>
                     <h3>Progreso por Criterio</h3>
@@ -1197,11 +1468,15 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
                 `;
             }
 
+            // Re-get canvas references afterinnerHTML update
+            const newGradesChartCanvas = document.getElementById('gradesChart');
+            const newCriteriaChartCanvas = document.getElementById('criteriaChart');
+
             // Grades Chart
             const gradesLabels = filteredEvals.map(e => `${e.nombrePrueba} (${new Date(e.timestamp).toLocaleDateString()})`);
             const gradesData = filteredEvals.map(e => e.nota_final_aplicada);
 
-            chartInstances.gradesChart = new Chart(gradesChartCanvas.getContext('2d'), {
+            chartInstances.gradesChart = new Chart(newGradesChartCanvas.getContext('2d'), {
                 type: 'line',
                 data: {
                     labels: gradesLabels,
@@ -1238,13 +1513,12 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
             filteredEvals.forEach(evalData => {
                 if (evalData.analisis_por_criterio) {
                     for (const criterion in evalData.analisis_por_criterio) {
-                        // Extract numerical score from criterion analysis string (e.g., "Análisis (3/5)")
                         const match = evalData.analisis_por_criterio[criterion].match(/(\d+(\.\d+)?)\/(\d+(\.\d+)?)/);
                         if (match) {
                             const score = parseFloat(match[1]);
                             const maxScore = parseFloat(match[3]);
                             if (!isNaN(score) && !isNaN(maxScore) && maxScore > 0) {
-                                const normalizedScore = (score / maxScore) * 100; // Normalize to 0-100
+                                const normalizedScore = (score / maxScore) * 100;
                                 if (!criteriaScores[criterion]) {
                                     criteriaScores[criterion] = { total: 0, count: 0 };
                                 }
@@ -1262,7 +1536,7 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
             );
 
             if (avgCriteriaLabels.length > 0) {
-                chartInstances.criteriaChart = new Chart(criteriaChartCanvas.getContext('2d'), {
+                chartInstances.criteriaChart = new Chart(newCriteriaChartCanvas.getContext('2d'), {
                     type: 'bar',
                     data: {
                         labels: avgCriteriaLabels,
@@ -1292,7 +1566,6 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
                     }
                 });
             } else {
-                // Check if criteriaChartCanvas actually exists before trying to access its parentElement
                 const containerElement = document.getElementById('criteriaChart')?.parentElement;
                 if (containerElement) {
                     containerElement.innerHTML = '<p>No hay datos de criterios para mostrar.</p>';
@@ -1300,7 +1573,6 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
             }
         }
 
-        // Helper to convert CSS variable to RGB string for Chart.js
         function varToRgb(variable, alpha = 1) {
             const color = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
             if (color.startsWith('#')) {
@@ -1309,7 +1581,7 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
                 let b = parseInt(color.substring(5, 7), 16);
                 return `rgba(${r}, ${g}, ${b}, ${alpha})`;
             }
-            return color; // Fallback for other color formats
+            return color;
         }
 
         async function generatePortfolioPDF() {
@@ -1340,7 +1612,7 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
             doc.text(`Curso: ${courseFilter || 'Todos'}`, 105, 70, null, null, "center");
             doc.setFontSize(10);
             doc.text(`Generado el: ${new Date().toLocaleDateString()}`, 105, 80, null, null, "center");
-            doc.addImage('https://via.placeholder.com/150/4b0082/FFFFFF?text=LibelIA', 'PNG', 80, 100, 50, 50); // Placeholder logo
+            doc.addImage('https://via.placeholder.com/150/4b0082/FFFFFF?text=LibelIA', 'PNG', 80, 100, 50, 50);
             doc.addPage();
 
             // Add Charts
@@ -1372,7 +1644,7 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
             let yPos = 30;
 
             filteredEvals.forEach((evalData, index) => {
-                if (yPos > 250) { // New page if content exceeds
+                if (yPos > 250) {
                     doc.addPage();
                     yPos = 20;
                 }
@@ -1471,4 +1743,3 @@ Aquí tienes el **código HTML COMPLETO y CORREGIDO** con la lógica del modal d
     </script>
 </body>
 </html>
-```
