@@ -1,6 +1,4 @@
-¡Absolutamente\! Aquí tienes el archivo `main.py` completo y **corregido**. Por favor, **reemplaza TODO el contenido de tu archivo `main.py` con este código.** Este incluye la corrección del `SyntaxError` que veíamos, las mejoras de la IA para metacognición y calibración de nota 7.0, y la preparación para la memoria de aprendizaje.
 
-````python
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
