@@ -267,17 +267,25 @@
         .file-item .file-actions button:hover {
             text-decoration: underline;
         }
-        .file-item .file-preview {
-            max-width: 50px;
-            max-height: 50px;
-            margin-right: 10px;
-            border-radius: 4px;
-            object-fit: cover;
-        }
         .file-item .file-info {
             display: flex;
             align-items: center;
             flex-grow: 1;
+            padding-right: 10px; /* Espacio antes del botón de eliminar */
+        }
+        .file-item .file-preview {
+            width: 50px; /* Tamaño fijo para la previsualización */
+            height: 50px;
+            margin-right: 10px;
+            border-radius: 4px;
+            object-fit: contain; /* Para que la imagen se ajuste sin recortarse */
+            flex-shrink: 0; /* Para que no se encoja */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em; /* Para iconos */
+            color: var(--text-color);
+            background: var(--bg-medium);
         }
 
         /* Camera */
@@ -331,6 +339,31 @@
             padding: 0.5em 1em;
             font-size: 0.9em;
         }
+        .historial-table-container {
+            overflow-x: auto;
+            margin-top: 1.5em;
+        }
+        .historial-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px; /* Asegura que la tabla no sea demasiado pequeña */
+        }
+        .historial-table th, .historial-table td {
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .historial-table th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .historial-table th.sorted-asc::after { content: " ↑"; }
+        .historial-table th.sorted-desc::after { content: " ↓"; }
+        .historial-table tbody tr:nth-child(even) { background-color: #f9f9f9; }
+
 
         /* Gráficos */
         .chart-container {
@@ -369,6 +402,28 @@
             color: #666;
             margin-top: 0.5em;
         }
+
+        /* Styles for professional feedback output */
+        .feedback-output-container h3 {
+            color: var(--primary-color);
+            font-size: 1.4em;
+            margin-top: 1.5em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5em;
+        }
+        .feedback-output-container h4 {
+            color: var(--secondary-color);
+            font-size: 1.1em;
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+        }
+        .feedback-output-container ul {
+            list-style: disc inside;
+            padding-left: 1em;
+        }
+        .feedback-output-container li {
+            margin-bottom: 0.5em;
+        }
     </style>
 </head>
 <body>
@@ -386,20 +441,25 @@
         <section id="eval-section" class="tab-content active">
             <h2>Evaluar Texto del Estudiante</h2>
             <form id="evalForm">
-                <label for="alumno">Nombre del estudiante:</label>
-                <input type="text" id="alumno" name="alumno" required>
-
-                <label for="curso">Curso/Asignatura:</label>
-                <input type="text" id="curso" name="curso" placeholder="Ej: 5° Básico Lenguaje, Historia 2° Medio" required>
+                <div class="flex-row">
+                    <div class="half">
+                        <label for="alumno">Nombre del estudiante:</label>
+                        <input type="text" id="alumno" name="alumno" required>
+                    </div>
+                    <div class="half">
+                        <label for="curso">Curso/Asignatura:</label>
+                        <input type="text" id="curso" name="curso" placeholder="Ej: 5° Básico Lenguaje, Historia 2° Medio" required>
+                    </div>
+                </div>
 
                 <label for="nombrePrueba">Nombre de la Prueba/Actividad:</label>
                 <input type="text" id="nombrePrueba" name="nombrePrueba" placeholder="Ej: Ensayo Simce, Informe de Investigación" required>
 
-                <label for="evaluacion">Texto del estudiante:</label>
-                <textarea id="evaluacion" name="evaluacion" rows="8" placeholder="Pega aquí el texto del estudiante o usa la sección de OCR." required></textarea>
+                <label for="evaluacion">Texto del estudiante (se rellena con OCR o se pega):</label>
+                <textarea id="evaluacion" name="evaluacion" rows="8" placeholder="El texto del estudiante aparecerá aquí después de usar el OCR o puedes pegarlo directamente." required></textarea>
 
                 <label for="rubrica">Rúbrica (criterios de evaluación):</label>
-                <textarea id="rubrica" name="rubrica" rows="5" placeholder="Define los criterios de evaluación. Ej: 'Claridad (0-3), Coherencia (0-3), Argumentación (0-4)'" required></textarea>
+                <textarea id="rubrica" name="rubrica" rows="5" placeholder="Define los criterios de evaluación. Usa el Asistente IA de Rúbricas para generar o cargar." required></textarea>
 
                 <div class="flex-row">
                     <div class="half">
@@ -426,7 +486,7 @@
 
                 <button type="submit"><i class="fas fa-paper-plane"></i> Enviar a Evaluar</button>
             </form>
-            <div id="resultado" class="output"></div>
+            <div id="resultado" class="output feedback-output-container"></div>
 
             <section style="margin-top: 3em;">
                 <h2>📷 Extraer Texto desde Imagen/Documento (OCR)</h2>
@@ -459,7 +519,7 @@
 
             <section id="batchReviewSection" style="margin-top: 3em; display: none;">
                 <h2>📝 Revisión del Lote de Estudiantes</h2>
-                <p>Verifica y edita el nombre del estudiante y el texto extraído antes de evaluar.</p>
+                <p>Verifica y edita el nombre del estudiante, curso y el texto extraído antes de evaluar.</p>
                 <div id="studentBatchContainer">
                     </div>
                 <button id="evaluateBatchButton" style="margin-top: 1em;"><i class="fas fa-paper-plane"></i> Evaluar Lote Completo</button>
@@ -480,7 +540,11 @@
 
         <section id="history-section" class="tab-content">
             <h2>Historial de Evaluaciones</h2>
-            <div id="historialList">
+            <div style="margin-bottom: 1em;">
+                <input type="text" id="searchHistory" placeholder="Buscar por estudiante, curso o prueba...">
+                <button id="exportGradesCsvButton" style="margin-top: 0.5em;"><i class="fas fa-file-csv"></i> Exportar a CSV</button>
+            </div>
+            <div id="historialList" class="historial-table-container">
                 <p>Cargando historial...</p>
             </div>
         </section>
@@ -594,10 +658,14 @@
         let processedBatchStudentsData = []; // Almacena la data de los estudiantes para el lote
         let cameraFacingMode = 'environment'; // 'user' para frontal, 'environment' para trasera
         let nameCorrections = {}; // Almacena correcciones de nombres: { "nombre_detectado_lower": "Nombre Corregido" }
+        let courseCorrections = {}; // NUEVO: Almacena correcciones de cursos: { "curso_detectado_lower": "Curso Corregido" }
 
         let evaluationsHistory = [];
         let currentEvaluationData = null;
         let chartInstances = {};
+        let currentSortColumn = 'fecha'; // Columna de ordenación por defecto
+        let currentSortDirection = 'desc'; // Dirección de ordenación por defecto (descendente para fecha)
+
 
         // DOM Elements
         const evalForm = document.getElementById("evalForm");
@@ -648,6 +716,8 @@
         const rubricAssistantForm = document.getElementById("rubricAssistantForm");
         const rubricAssistantOutput = document.getElementById("rubricAssistantOutput");
         const rubricFileInput = document.getElementById("rubricFileInput"); // Input para subir rúbrica
+        const searchHistoryInput = document.getElementById("searchHistory"); // Campo de búsqueda del historial
+        const exportGradesCsvButton = document.getElementById("exportGradesCsvButton"); // Botón exportar CSV
 
         const analysisStudentNameInput = document.getElementById("analysisStudentName");
         const analysisCourseNameInput = document.getElementById("analysisCourseName");
@@ -662,41 +732,61 @@
         const bonusStatusDiv = document.getElementById("bonusStatus");
 
 
-        // --- Lógica de persistencia de correcciones de nombres ---
-        // Cargar correcciones al inicio
+        // --- Lógica de persistencia de correcciones de nombres y cursos ---
         document.addEventListener('DOMContentLoaded', () => {
-            loadEvaluationsHistory(); // Tu función existente para cargar historial
+            loadEvaluationsHistory();
             const storedNameCorrections = localStorage.getItem('libelia_name_corrections');
             if (storedNameCorrections) {
                 nameCorrections = JSON.parse(storedNameCorrections);
             }
+            const storedCourseCorrections = localStorage.getItem('libelia_course_corrections');
+            if (storedCourseCorrections) {
+                courseCorrections = JSON.parse(storedCourseCorrections);
+            }
         });
 
-        // Guardar correcciones cuando se modifiquen
         function saveNameCorrections() {
             localStorage.setItem('libelia_name_corrections', JSON.stringify(nameCorrections));
         }
 
-        // Aplicar corrección guardada o almacenar nueva corrección
-        function applyOrStoreNameCorrection(detectedName, correctedName) {
-            const detectedLower = detectedName.toLowerCase().trim();
+        function saveCourseCorrections() {
+            localStorage.setItem('libelia_course_corrections', JSON.stringify(courseCorrections));
+        }
+
+        // Aplica corrección guardada o almacena nueva corrección de nombre
+        function applyOrStoreNameCorrection(originalDetectedName, correctedName) {
+            const originalLower = originalDetectedName.toLowerCase().trim();
             const correctedLower = correctedName.toLowerCase().trim();
 
-            if (detectedLower === correctedLower || detectedLower === "nombre no detectado" || detectedLower === "error al extraer nombre") {
-                // Si no hay cambio real o el nombre detectado es un placeholder, no guardamos la corrección.
-                // Sin embargo, si un placeholder se convierte en nombre real, SÍ lo guardamos.
-                if (detectedLower !== correctedLower && correctedLower !== "" && detectedLower.startsWith("nombre no detectado") || detectedLower.startsWith("error al extraer nombre")) {
-                     nameCorrections[correctedLower] = correctedName; // Guardar el nombre corregido
-                     saveNameCorrections();
-                }
+            if (!correctedName || originalLower === correctedLower) {
+                return; // No hay corrección o es un placeholder sin cambiar
+            }
+
+            // Si el nombre original era un placeholder, guardamos el nombre corregido bajo su versión en minúsculas
+            if (originalLower === "nombre no detectado" || originalLower === "error al extraer nombre") {
+                 nameCorrections[correctedLower] = correctedName;
+            } else {
+                // Si es una corrección de un nombre detectado real
+                nameCorrections[originalLower] = correctedName;
+            }
+            saveNameCorrections();
+        }
+
+        // Aplica corrección guardada o almacena nueva corrección de curso
+        function applyOrStoreCourseCorrection(originalDetectedCourse, correctedCourse) {
+            const originalLower = originalDetectedCourse.toLowerCase().trim();
+            const correctedLower = correctedCourse.toLowerCase().trim();
+
+            if (!correctedCourse || originalLower === correctedLower) {
                 return;
             }
 
-            // Si el nombre detectado es real y fue corregido
-            if (nameCorrections[detectedLower] !== correctedName) {
-                nameCorrections[detectedLower] = correctedName;
-                saveNameCorrections();
+            if (originalLower === "sin curso detectado" || originalLower === "error al extraer curso") {
+                courseCorrections[correctedLower] = correctedCourse;
+            } else {
+                courseCorrections[originalLower] = correctedCourse;
             }
+            saveCourseCorrections();
         }
 
 
@@ -794,7 +884,7 @@
                 curso.toLowerCase().includes("pie") || nombrePrueba.toLowerCase().includes("pie") ||
                 curso.toLowerCase().includes("adecuación") || nombrePrueba.toLowerCase().includes("adecuación")) {
                 contextPrompt = "Considera que esta es una evaluación con consideraciones especiales (ej. diferenciada, de apoyo). Sé más empático y enfócate en el progreso y el esfuerzo, no solo en el resultado final. Ajusta tu lenguaje para ser alentador y constructivo.";
-            } else if (curso.toLowerCase().includes("superior") || curso.toLowerCase().includes("universidad") ||
+            } else if (curso.toLowerCase().includes("superior") || nombrePrueba.toLowerCase().includes("universidad") ||
                        nombrePrueba.toLowerCase().includes("tesis") || nombrePrueba.toLowerCase().includes("investigación avanzada")) {
                 contextPrompt = "Considera que esta es una evaluación de nivel superior. Espera un análisis crítico profundo, argumentación sólida y un lenguaje académico. Sé riguroso en tu feedback.";
             } else if (curso.toLowerCase().includes("inicial") || curso.toLowerCase().includes("prekinder") ||
@@ -866,39 +956,25 @@
                     return;
                 }
 
-                let finalNote = parseFloat(parsedIaResult.nota_sugerida_ia); // Asegurar que es un número
-                //const iaCalculatedNoteVal = finalNote; // No usada si el modal está comentado
+                let finalNote = parseFloat(parsedIaResult.nota_sugerida_ia);
 
-                // ******** Lógica del modal de nota mínima completamente deshabilitada ********
-                /*
-                if (iaCalculatedNoteVal < notaMinima) {
-                    const userConfirmed = await showNotaMinimaConfirmation(iaCalculatedNoteVal, notaMinima);
+                // Lógica del modal de nota mínima completamente deshabilitada
+                notaMinimaWarning.style.display = 'none'; // Asegurarse de que la advertencia no se muestre
 
-                    if (userConfirmed) {
-                        finalNote = notaMinima;
-                        notaMinimaWarning.style.display = 'block'; // Mostrar la advertencia visual
-                    } else {
-                        finalNote = iaCalculatedNoteVal; // Usar la nota de la IA si el usuario cancela
-                        notaMinimaWarning.style.display = 'none'; // Ocultar la advertencia
-                    }
-                } else {
-                    notaMinimaWarning.style.display = 'none'; // Asegurarse de que la advertencia no se muestre si no es necesario
-                }
-                */
-                // ********* Fin de la lógica deshabilitada *********
+                parsedIaResult.nota_final_aplicada = parseFloat(finalNote.toFixed(1));
+                parsedIaResult.timestamp = Date.now();
+                parsedIaResult.id = parsedIaResult.timestamp;
+                parsedIaResult.curso = curso;
+                parsedIaResult.nombrePrueba = nombrePrueba;
+                parsedIaResult.flexibilidadIA = flexibilidadIA;
+                parsedIaResult.notaMinima = notaMinima;
 
-                // Asegurarse de que la advertencia de nota mínima no se muestre si la lógica está comentada
-                notaMinimaWarning.style.display = 'none';
+                // Guardar el texto de evaluación y la rúbrica usada en el objeto de historial
+                parsedIaResult.texto_evaluado = evaluacion;
+                parsedIaResult.rubrica_usada = rubrica;
 
 
-                // Add the final note to the parsed result
-                parsedIaResult.nota_final_aplicada = parseFloat(finalNote.toFixed(1)); // Redondear a 1 decimal
-                parsedIaResult.timestamp = Date.now(); // Add timestamp for history
-                parsedIaResult.id = parsedIaResult.timestamp; // Simple ID for now
-
-                currentEvaluationData = parsedIaResult; // Store for saving
-
-                resultadoDiv.textContent = JSON.stringify(parsedIaResult, null, 2);
+                resultadoDiv.innerHTML = formatEvaluationOutput(parsedIaResult); // Usar nueva función de formateo
                 saveEvaluationToHistory(parsedIaResult); // Save to local storage
 
             } catch (error) {
@@ -906,6 +982,39 @@
                 console.error("Error en la evaluación:", error);
             }
         });
+
+        // --- Formato Profesional de la Retroalimentación ---
+        function formatEvaluationOutput(evalData) {
+            let html = `<h3>Resultado para: ${evalData.alumno} - Nota Final: <span style="color: ${evalData.nota_final_aplicada >= 4.0 ? 'green' : 'red'};">${evalData.nota_final_aplicada.toFixed(1)}</span></h3>`;
+            html += `<p><strong>Curso:</strong> ${evalData.curso} | <strong>Prueba:</strong> ${evalData.nombrePrueba}</p>`;
+
+            if (evalData.feedback_general) {
+                html += `<h4>Feedback General</h4><p>${evalData.feedback_general}</p>`;
+            }
+            if (evalData.puntos_fuertes && evalData.puntos_fuertes.length > 0) {
+                html += `<h4>Puntos Fuertes</h4><ul>`;
+                evalData.puntos_fuertes.forEach(p => html += `<li>${p}</li>`);
+                html += `</ul>`;
+            }
+            if (evalData.sugerencias_mejora && evalData.sugerencias_mejora.length > 0) {
+                html += `<h4>Sugerencias de Mejora</h4><ul>`;
+                evalData.sugerencias_mejora.forEach(s => html += `<li>${s}</li>`);
+                html += `</ul>`;
+            }
+            if (evalData.analisis_por_criterio) {
+                html += `<h4>Análisis por Criterio</h4><ul>`;
+                for (const criterio in evalData.analisis_por_criterio) {
+                    html += `<li><strong>${criterio}:</strong> ${evalData.analisis_por_criterio[criterio]}</li>`;
+                }
+                html += `</ul>`;
+            }
+            if (evalData.puntaje_calculado_ia !== undefined && evalData.escala_puntaje !== undefined) {
+                 html += `<h4>Puntaje Calculado por IA: ${evalData.puntaje_calculado_ia} / ${evalData.escala_puntaje}</h4>`;
+            }
+
+            return html;
+        }
+
 
         // --- OCR and File Handling ---
         imagenDocumentoInput.addEventListener("change", (e) => {
@@ -1044,26 +1153,35 @@
                     }
                 }
 
-                // Intentar extraer el nombre del estudiante con IA
+                // Intentar extraer el nombre y curso del estudiante con IA
                 let detectedName = "Nombre no detectado";
+                let detectedCourse = "Sin curso detectado";
                 try {
-                    const extracted = await extractStudentNameFromText(combinedTextForStudent);
-                    detectedName = extracted;
+                    const extracted = await extractStudentNameAndCourseFromText(combinedTextForStudent);
+                    detectedName = extracted.name;
+                    detectedCourse = extracted.course;
                 } catch (error) {
-                    console.warn("Error al extraer nombre con IA:", error);
+                    console.warn("Error al extraer nombre/curso con IA:", error);
                 }
 
                 // Aplicar corrección de nombre si existe
                 let finalStudentName = detectedName;
-                if (nameCorrections[detectedName.toLowerCase()]) { // Si el nombre detectado (en minúsculas) tiene una corrección guardada
+                if (nameCorrections[detectedName.toLowerCase()]) {
                     finalStudentName = nameCorrections[detectedName.toLowerCase()];
+                }
+                // Aplicar corrección de curso si existe
+                let finalCourseName = detectedCourse;
+                if (courseCorrections[detectedCourse.toLowerCase()]) {
+                    finalCourseName = courseCorrections[detectedCourse.toLowerCase()];
                 }
 
 
                 processedBatchStudentsData.push({
                     id: studentId,
-                    originalDetectedName: detectedName, // Guardar el nombre original detectado por IA
-                    name: finalStudentName, // Usar el nombre corregido si aplica
+                    originalDetectedName: detectedName,
+                    name: finalStudentName,
+                    originalDetectedCourse: detectedCourse,
+                    course: finalCourseName,
                     text: combinedTextForStudent.trim(),
                     files: studentFiles.map(f => f.name)
                 });
@@ -1074,6 +1192,7 @@
         }
 
         async function readFileAndPerformOCR(file) {
+            // Azure OCR for images/PDFs
             if (file.type.startsWith('image/') || file.type === 'application/pdf') {
                 const formData = new FormData();
                 formData.append("file", file);
@@ -1086,21 +1205,24 @@
                     throw new Error(errorData.error || `Error OCR: ${res.status}`);
                 }
                 const ocrResult = await res.json();
-                // Azure OCR for images/PDFs
-                // Check for v3.2/ocr format (lines.text) or v3.2/read/analyze (readResults.content)
+                
+                // --- Manejo de diferentes estructuras de respuesta de Azure OCR ---
+                // Preferir 'readResults' (v3.2/read/analyze o v4.0 Read API)
                 if (ocrResult.readResults && Array.isArray(ocrResult.readResults)) {
-                    // v3.2/read/analyze format
+                    // Azure Vision v3.2/read/analyze o v4.0 (si se usa content)
                     return ocrResult.readResults.map(page => page.lines.map(line => line.text).join('\n')).join('\n\n');
                 } else if (ocrResult.regions && Array.isArray(ocrResult.regions)) {
-                    // v3.2/ocr (synchronous) format
+                    // Azure Vision v3.2/ocr (synchronous) - para imágenes simples
                     return ocrResult.regions.map(region => region.lines.map(line => line.words.map(w => w.text).join(' ')).join('\n')).join('\n\n');
+                } else if (ocrResult.analyzeResult && ocrResult.analyzeResult.readResults) {
+                    // Otra posible estructura de v4.0 o Read API
+                    return ocrResult.analyzeResult.readResults.map(page => page.content).join('\n\n');
                 }
-                // Fallback for v4.0 or other structures
-                if (ocrResult.analyzeResult && ocrResult.analyzeResult.readResults) {
-                     return ocrResult.analyzeResult.readResults.map(page => page.content).join('\n\n');
-                }
-                return `[No se detectó texto en ${file.name}]`;
-            } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                
+                return `[No se detectó texto legible en ${file.name}]`;
+            } 
+            // Mammoth for DOCX
+            else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
                 const arrayBuffer = await file.arrayBuffer();
                 const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
                 return result.value;
@@ -1108,24 +1230,32 @@
             return `[Contenido no extraíble de ${file.name} - Tipo: ${file.type}]`;
         }
 
-        async function extractStudentNameFromText(text) {
-            if (!text.trim()) return "Nombre no detectado";
-            // Tomar solo los primeros 2000 caracteres para la extracción del nombre para no exceder límites de token
-            const textSnippet = text.substring(0, 2000);
-            const prompt = `Tu tarea es encontrar el nombre del estudiante en el siguiente texto.
-            Busca etiquetas explícitas como 'Nombre:', 'Estudiante:', 'Alumno/a:', o patrones donde el nombre aparece al principio de un documento de evaluación.
-            Ignora proactivamente nombres que parezcan ser del profesor (ej. si están cerca de 'Profesor/a:').
-            Si encuentras un nombre claro, único y sin ambigüedades, devuélvelo.
-            Si no estás 100% seguro de un único nombre, devuelve la frase "Nombre no detectado".
-            Devuelve SOLO el nombre o la frase "Nombre no detectado", sin explicaciones adicionales.
+        async function extractStudentNameAndCourseFromText(text) {
+            if (!text.trim()) return { name: "Nombre no detectado", course: "Sin curso detectado" };
+            const textSnippet = text.substring(0, 3000); // Tomar más texto para el contexto del curso
+            
+            const prompt = `Eres un asistente inteligente. Tu tarea es extraer el nombre completo del estudiante y el curso o asignatura del siguiente texto de un documento de evaluación.
 
-            TEXTO:
+            Directrices para la extracción:
+            - **Nombre del Estudiante:** Busca etiquetas explícitas como 'Nombre:', 'Estudiante:', 'Alumno/a:', o patrones donde el nombre aparece claramente al principio de un documento. Si el nombre es un apellido compuesto (ej. "de la Cruz"), inclúyelo. Si es un nombre doble, inclúyelo. Si el nombre del estudiante se corrige en el frontend, esa corrección DEBE prevalecer sobre cualquier detección futura.
+            - **Curso/Asignatura:** Busca etiquetas como 'Curso:', 'Asignatura:', o descripciones de cursos (ej. "8vo B", "Matemáticas 3° Medio", "Historia", "Lenguaje", "Ciencias Naturales").
+
+            Formato de salida (¡OBLIGATORIO!): Un objeto JSON con las claves "nombre" y "curso".
+            - Si no encuentras un nombre claro y único, para "nombre" devuelve "Nombre no detectado".
+            - Si no encuentras un curso claro, para "curso" devuelve "Sin curso detectado".
+            - Devuelve SOLO el objeto JSON.
+
+            Ejemplo de salida:
+            {"nombre": "Juan Pérez", "curso": "8vo B Lenguaje"}
+            {"nombre": "Nombre no detectado", "curso": "Matemáticas"}
+
+            TEXTO DEL DOCUMENTO:
             """
             ${textSnippet}
             """`;
             
             const dataToSend = {
-                alumno: "Extractor de Nombre IA", // Dummy para la estructura del endpoint
+                alumno: "Extractor de Datos IA", // Dummy para la estructura del endpoint
                 evaluacion: "", // Dummy
                 rubrica: "", // Dummy
                 curso: "", // Dummy
@@ -1146,15 +1276,26 @@
                     throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
                 }
                 const result = await res.json();
-                const name = result.choices[0].message.content.trim();
-                // Devolver el nombre o un placeholder si la IA devuelve vacío o algo irrelevante
-                if (!name || name.toLowerCase().includes("no detectado") || name.length > 50) { // Límite para nombres
-                    return "Nombre no detectado";
+                let parsedResult;
+                try {
+                    parsedResult = JSON.parse(result.choices[0].message.content);
+                    if (typeof parsedResult.nombre === 'undefined' || typeof parsedResult.curso === 'undefined') {
+                        throw new Error("JSON de extracción incompleto.");
+                    }
+                } catch (jsonError) {
+                    console.error("Error al parsear JSON de extracción de nombre/curso:", jsonError, result.choices[0].message.content);
+                    return { name: "Error al extraer nombre", course: "Error al extraer curso" };
                 }
-                return name;
+
+                // Normalizar nombres/cursos detectados si son placeholders o muy largos
+                const finalName = (parsedResult.nombre && !parsedResult.nombre.toLowerCase().includes("no detectado") && parsedResult.nombre.length < 100) ? parsedResult.nombre : "Nombre no detectado";
+                const finalCourse = (parsedResult.curso && !parsedResult.curso.toLowerCase().includes("no detectado") && parsedResult.curso.length < 100) ? parsedResult.curso : "Sin curso detectado";
+
+                return { name: finalName, course: finalCourse };
+
             } catch (error) {
-                console.error("Error al llamar a la IA para extraer nombre:", error);
-                return "Error al extraer nombre";
+                console.error("Error al llamar a la IA para extraer nombre/curso:", error);
+                return { name: "Error al extraer nombre", course: "Error al extraer curso" };
             }
         }
 
@@ -1172,26 +1313,37 @@
                     <h3>Estudiante ${index + 1}</h3>
                     <label for="studentName-${student.id}">Nombre del Estudiante:</label>
                     <input type="text" id="studentName-${student.id}" value="${student.name}" data-student-id="${student.id}" data-original-detected-name="${student.originalDetectedName}">
+                    <label for="studentCourse-${student.id}">Curso/Asignatura:</label>
+                    <input type="text" id="studentCourse-${student.id}" value="${student.course}" data-student-id="${student.id}" data-original-detected-course="${student.originalDetectedCourse}">
                     <label for="studentText-${student.id}">Texto Extraído (Editable):</label>
                     <textarea id="studentText-${student.id}" rows="10">${student.text}</textarea>
                     <div class="file-list-preview">Archivos: ${student.files.join(', ')}</div>
                 `;
                 studentBatchContainer.appendChild(studentBlock);
 
-                // Sincronizar cambios en los campos editables
+                // Sincronizar y guardar cambios en los campos editables
                 const nameInput = document.getElementById(`studentName-${student.id}`);
+                const courseInput = document.getElementById(`studentCourse-${student.id}`);
                 const textInput = document.getElementById(`studentText-${student.id}`);
 
                 nameInput.addEventListener('input', (e) => {
                     student.name = e.target.value;
                 });
-                // Guardar la corrección del nombre cuando el campo pierde el foco
                 nameInput.addEventListener('blur', (e) => {
+                    // Guardar la corrección del nombre cuando el campo pierde el foco
                     const correctedName = e.target.value.trim();
                     const originalDetectedName = e.target.dataset.originalDetectedName;
-                    if (correctedName && correctedName.toLowerCase() !== originalDetectedName.toLowerCase()) {
-                        applyOrStoreNameCorrection(originalDetectedName, correctedName);
-                    }
+                    applyOrStoreNameCorrection(originalDetectedName, correctedName);
+                });
+
+                courseInput.addEventListener('input', (e) => {
+                    student.course = e.target.value;
+                });
+                courseInput.addEventListener('blur', (e) => {
+                    // Guardar la corrección del curso cuando el campo pierde el foco
+                    const correctedCourse = e.target.value.trim();
+                    const originalDetectedCourse = e.target.dataset.originalDetectedCourse;
+                    applyOrStoreCourseCorrection(originalDetectedCourse, correctedCourse);
                 });
 
                 textInput.addEventListener('input', (e) => {
@@ -1210,51 +1362,64 @@
             if (!confirmEvaluate) return;
 
             resultadoDiv.textContent = "Iniciando evaluación del lote...";
-            const commonCurso = document.getElementById("curso").value;
-            const commonNombrePrueba = document.getElementById("nombrePrueba").value;
-            const commonRubrica = document.getElementById("rubrica").value;
+            const commonRubrica = document.getElementById("rubrica").value; // Rubrica común para todo el lote
             const commonFlexibilidadIA = flexibilidadIAInput.value;
             const commonNotaMinima = parseFloat(notaMinimaInput.value);
 
-            if (!commonCurso || !commonNombrePrueba || !commonRubrica) {
-                alert("Por favor, rellena los campos 'Curso', 'Nombre de la Prueba' y 'Rúbrica' en la sección principal de evaluación para el lote.");
+            if (!commonRubrica) {
+                alert("Por favor, rellena el campo 'Rúbrica' en la sección principal de evaluación para el lote.");
                 return;
             }
 
             for (const student of processedBatchStudentsData) {
-                // Pre-validar nombre del estudiante en el lote
+                // Validar que el nombre y curso del estudiante sean válidos antes de evaluar
                 if (!student.name || student.name.trim() === "" || student.name.toLowerCase().includes("no detectado") || student.name.toLowerCase().includes("error al extraer")) {
-                    resultadoDiv.textContent += `\n❌ SALTO: El estudiante con ID ${student.id} tiene un nombre inválido ('${student.name}'). Por favor, corrígelo manualmente.`;
-                    continue; // Saltar a este estudiante si el nombre no es válido
+                    resultadoDiv.textContent += `\n❌ SALTO: El estudiante con ID ${student.id} tiene un nombre inválido ('${student.name}'). Por favor, corrígelo manualmente en la sección de revisión.`;
+                    continue;
+                }
+                if (!student.course || student.course.trim() === "" || student.course.toLowerCase().includes("sin curso detectado") || student.course.toLowerCase().includes("error al extraer")) {
+                    resultadoDiv.textContent += `\n❌ SALTO: El estudiante con ID ${student.id} tiene un curso inválido ('${student.course}'). Por favor, corrígelo manualmente en la sección de revisión.`;
+                    continue;
                 }
 
-                resultadoDiv.textContent += `\nEvaluando a ${student.name}...`;
+
+                resultadoDiv.textContent += `\nEvaluando a ${student.name} (${student.course})...`;
                 try {
                     // Lógica de contexto pedagógico (duplicada de la evaluación individual para lote)
                     let contextPrompt = "";
-                    if (commonCurso.toLowerCase().includes("diferenciada") || commonNombrePrueba.toLowerCase().includes("diferenciada") ||
-                        commonCurso.toLowerCase().includes("pie") || commonNombrePrueba.toLowerCase().includes("pie") ||
-                        commonCurso.toLowerCase().includes("adecuación") || commonNombrePrueba.toLowerCase().includes("adecuación")) {
+                    const cursoLower = student.course.toLowerCase(); // Usar el curso específico del estudiante
+                    const nombrePruebaLower = document.getElementById("nombrePrueba").value.toLowerCase(); // Nombre de la prueba común
+
+                    if (cursoLower.includes("diferenciada") || nombrePruebaLower.includes("diferenciada") ||
+                        cursoLower.includes("pie") || nombrePruebaLower.includes("pie") ||
+                        cursoLower.includes("adecuación") || nombrePruebaLower.includes("adecuación")) {
                         contextPrompt = "Considera que esta es una evaluación con consideraciones especiales (ej. diferenciada, de apoyo). Sé más empático y enfócate en el progreso y el esfuerzo, no solo en el resultado final. Ajusta tu lenguaje para ser alentador y constructivo.";
-                    } else if (commonCurso.toLowerCase().includes("superior") || commonNombrePrueba.toLowerCase().includes("universidad") ||
-                               commonNombrePrueba.toLowerCase().includes("tesis") || commonNombrePrueba.toLowerCase().includes("investigación avanzada")) {
+                    } else if (cursoLower.includes("superior") || nombrePruebaLower.includes("universidad") ||
+                               nombrePruebaLower.includes("tesis") || nombrePruebaLower.includes("investigación avanzada")) {
                         contextPrompt = "Considera que esta es una evaluación de nivel superior. Espera un análisis crítico profundo, argumentación sólida y un lenguaje académico. Sé riguroso en tu feedback.";
-                    } else if (commonCurso.toLowerCase().includes("inicial") || commonNombrePrueba.toLowerCase().includes("prekinder") ||
-                               commonNombrePrueba.toLowerCase().includes("kinder") || commonNombrePrueba.toLowerCase().includes("juego") ||
-                               commonNombrePrueba.toLowerCase().includes("actividad lúdica")) {
+                    } else if (cursoLower.includes("inicial") || nombrePruebaLower.includes("prekinder") ||
+                               nombrePruebaLower.includes("kinder") || nombrePruebaLower.includes("juego") ||
+                               nombrePruebaLower.includes("actividad lúdica")) {
                         contextPrompt = "Considera que esta es una evaluación para educación inicial. Enfócate en el desarrollo de habilidades básicas, la participación y la creatividad. Usa un lenguaje muy simple y positivo.";
                     }
 
+                    // --- Nuevo: Lógica de Metacognición y Evaluación "Realista" ---
+                    let metacognitionDirectives = `
+                    ### DIRECTIVAS CLAVE PARA LA EVALUACIÓN (METAGOGNACIÓN PEDAGÓGICA) ###
+                    Actúa como un docente experto que comprende profundamente la situación contextual y pedagógica de cada estudiante.
+                    1.  **Juicio Global y Calibración de Nota (Meta):** Antes de asignar puntajes y feedback, forma una *impresión holística* del trabajo del estudiante (ej. excelente, muy bueno, suficiente, insuficiente). Luego, **CALIBRA tus puntajes y la nota final para que coincidan con esta impresión global y la escala de nota chilena (1.0 a 7.0)**. Un 7.0 es para trabajos excepcionales, que superan las expectativas y demuestran un dominio sobresaliente e incluso originalidad.
+                    2.  **Valoración del Esfuerzo y Progreso:** Si el contexto del curso o la prueba sugiere adaptaciones (Diferenciada, PIE, Apoyo, Adecuación), sé **más generoso con los puntajes parciales** y enfoca el feedback en los logros y próximos pasos realistas, valorando el esfuerzo por encima de la perfección.
+                    3.  **Retroalimentación Formativa:** Siempre ofrece feedback constructivo. Las "Sugerencias de Mejora" deben ser pasos concretos y alcanzables. Los "Puntos Fuertes" deben ser específicos.
+                    `;
 
-                    const fullPrompt = `Eres un evaluador pedagógico IA llamado LibelIA. Tu objetivo es evaluar el texto de un estudiante de forma justa, constructiva y empática, siguiendo una rúbrica específica.
-                    Flexibilidad de la IA en la evaluación (0=estricta, 10=flexible): ${commonFlexibilidadIA}. Ajusta tu rigor según este valor.
 
+                    const fullPrompt = `${metacognitionDirectives}
                     ${contextPrompt}
 
                     EVALUACIÓN SOLICITADA:
                     Alumno: ${student.name}
-                    Curso/Asignatura: ${commonCurso}
-                    Nombre de la Prueba/Actividad: ${commonNombrePrueba}
+                    Curso/Asignatura: ${student.course}
+                    Nombre de la Prueba/Actividad: ${document.getElementById("nombrePrueba").value}
                     Rúbrica: ${commonRubrica}
                     Texto del estudiante: ${student.text}
 
@@ -1264,7 +1429,7 @@
                         "analisis_por_criterio": {
                             "Criterio 1": "Análisis y puntaje para el criterio 1",
                             "Criterio 2": "Análisis y puntaje para el criterio 2"
-                            // ...
+                            // ... y así sucesivamente para cada criterio de la rúbrica
                         },
                         "puntaje_calculado_ia": "Puntaje numérico calculado por la IA (ej: 5.8, 65, etc.)",
                         "escala_puntaje": "La escala total de la rúbrica (ej: 7.0, 100, etc.)",
@@ -1276,10 +1441,10 @@
 
                     const dataToSend = {
                         alumno: student.name,
-                        evaluacion: student.text, // Texto específico del estudiante en el lote
+                        evaluacion: student.text,
                         rubrica: commonRubrica,
-                        curso: commonCurso,
-                        nombrePrueba: commonNombrePrueba,
+                        curso: student.course, // Usar el curso específico del estudiante
+                        nombrePrueba: document.getElementById("nombrePrueba").value,
                         flexibilidadIA: commonFlexibilidadIA,
                         notaMinima: commonNotaMinima,
                         prompt: fullPrompt
@@ -1304,21 +1469,46 @@
                     } catch (jsonError) {
                         resultadoDiv.textContent += `\nError al parsear JSON de la IA para ${student.name}: ${jsonError.message}\n${iaResult.substring(0, 200)}...`;
                         console.error(`Error al parsear JSON para ${student.name}:`, jsonError);
-                        continue; // Pasar al siguiente estudiante si el JSON es inválido
+                        continue;
                     }
 
                     let finalNote = parseFloat(parsedIaResult.nota_sugerida_ia);
-                    // Lógica del modal de nota mínima está deshabilitada temporalmente
+                    notaMinimaWarning.style.display = 'none'; // Asegurarse de que la advertencia no se muestre
 
                     parsedIaResult.nota_final_aplicada = parseFloat(finalNote.toFixed(1));
                     parsedIaResult.timestamp = Date.now();
                     parsedIaResult.id = parsedIaResult.timestamp;
-                    parsedIaResult.curso = commonCurso; // Añadir curso y nombrePrueba para que se guarden bien
-                    parsedIaResult.nombrePrueba = commonNombrePrueba;
-                    parsedIaResult.flexibilidadIA = commonFlexibilidadIA; // Guardar config también
+                    parsedIaResult.curso = student.course;
+                    parsedIaResult.nombrePrueba = document.getElementById("nombrePrueba").value;
+                    parsedIaResult.flexibilidadIA = commonFlexibilidadIA;
                     parsedIaResult.notaMinima = commonNotaMinima;
 
-                    saveEvaluationToHistory(parsedIaResult);
+                    // Almacenar también el texto original y la rúbrica usada para el historial detallado
+                    parsedIaResult.texto_evaluado = student.text;
+                    parsedIaResult.rubrica_usada = commonRubrica;
+
+                    // Enviar al backend para guardar en Supabase
+                    // AÑADIR LÓGICA DE GUARDAR EN SUPABASE AQUÍ CUANDO EL ENDPOINT ESTÉ LISTO
+                    try {
+                        const saveRes = await fetch("/guardar", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(parsedIaResult) // Enviar el resultado completo de la IA
+                        });
+                        if (!saveRes.ok) {
+                            const errorData = await saveRes.json();
+                            console.error("Error al guardar en Supabase:", errorData);
+                            resultadoDiv.textContent += `\n⚠️ Advertencia: No se pudo guardar la evaluación de ${student.name} en Supabase.`;
+                        } else {
+                            // Si se guarda en Supabase, también guardamos localmente como caché o para la vista inmediata
+                            saveEvaluationToHistory(parsedIaResult);
+                        }
+                    } catch (saveError) {
+                         console.error("Error de red al guardar en Supabase:", saveError);
+                         resultadoDiv.textContent += `\n⚠️ Advertencia: Error de red al intentar guardar la evaluación de ${student.name} en Supabase.`;
+                    }
+
+
                     resultadoDiv.textContent += `\n✅ ${student.name} evaluado. Nota: ${parsedIaResult.nota_final_aplicada.toFixed(1)}`;
 
                 } catch (error) {
@@ -1327,11 +1517,11 @@
                 }
             }
             resultadoDiv.textContent += "\n¡Evaluación de lote completada!";
-            batchReviewSection.style.display = 'none'; // Ocultar sección de revisión de lote
-            uploadedFiles = []; // Limpiar archivos cargados
-            renderUploadedFilesList(); // Limpiar lista de archivos
-            processBatchFilesButton.disabled = true; // Deshabilitar botón de procesar lote
-            ocrBatchStatusDiv.style.display = 'none'; // Ocultar estado de OCR por lotes
+            batchReviewSection.style.display = 'none';
+            uploadedFiles = [];
+            renderUploadedFilesList();
+            processBatchFilesButton.disabled = true;
+            ocrBatchStatusDiv.style.display = 'none';
         });
 
 
@@ -1341,18 +1531,17 @@
 
         startCameraButton.addEventListener('click', async () => {
             try {
-                // Si ya hay un stream, detenerlo antes de iniciar uno nuevo
                 if (currentCameraStream) {
                     currentCameraStream.getTracks().forEach(track => track.stop());
                 }
                 currentCameraStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: cameraFacingMode } // Usa la variable de modo
+                    video: { facingMode: cameraFacingMode }
                 });
                 cameraFeed.srcObject = currentCameraStream;
                 startCameraButton.disabled = true;
                 takePhotoButton.disabled = false;
                 stopCameraButton.disabled = false;
-                toggleCameraButton.disabled = false; // Habilitar el botón de cambiar cámara
+                toggleCameraButton.disabled = false;
                 imageQualityMessage.style.display = 'none';
                 photoPreview.style.display = 'none';
             } catch (err) {
@@ -1364,16 +1553,13 @@
         });
 
         toggleCameraButton.addEventListener('click', async () => {
-            // Detener el stream actual
             if (currentCameraStream) {
                 currentCameraStream.getTracks().forEach(track => track.stop());
             }
 
-            // Cambiar el modo de la cámara
             cameraFacingMode = (cameraFacingMode === 'user') ? 'environment' : 'user';
-            isFrontCamera = !isFrontCamera; // Actualizar el estado de la cámara frontal/trasera
+            isFrontCamera = !isFrontCamera;
 
-            // Iniciar nuevo stream con el modo cambiado
             try {
                 currentCameraStream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: cameraFacingMode }
@@ -1384,10 +1570,9 @@
                 imageQualityMessage.style.display = 'block';
                 imageQualityMessage.className = 'alert alert-error';
                 imageQualityMessage.innerHTML = `<i class="fas fa-times-circle"></i> Error al cambiar de cámara.`;
-                // Si falla, revertir al modo original e intentar de nuevo, o deshabilitar
-                cameraFacingMode = (cameraFacingMode === 'user') ? 'environment' : 'user'; // Revertir
-                isFrontCamera = !isFrontCamera; // Revertir estado
-                stopCameraButton.click(); // Detener si hay un problema
+                cameraFacingMode = (cameraFacingMode === 'user') ? 'environment' : 'user';
+                isFrontCamera = !isFrontCamera;
+                stopCameraButton.click();
             }
         });
 
@@ -1404,13 +1589,12 @@
                 photoPreview.src = URL.createObjectURL(blob);
                 photoPreview.style.display = 'block';
 
-                // Basic image quality check for camera photo
                 let qualityMsg = '';
                 let isValid = true;
                 if (cameraCanvas.width < 800 || cameraCanvas.height < 600) {
                     qualityMsg = 'Advertencia: Baja resolución de la foto. El OCR podría no ser preciso.';
                     isValid = false;
-                } else if (blob.size < 50 * 1024) { // Very small file size (e.g., <50KB) might indicate very low quality/detail
+                } else if (blob.size < 50 * 1024) {
                     qualityMsg = 'Advertencia: El tamaño del archivo es muy pequeño. La calidad de la imagen podría ser baja.';
                     isValid = false;
                 }
@@ -1424,11 +1608,10 @@
                     imageQualityMessage.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${qualityMsg}`;
                 }
 
-                // Añadir la foto capturada a la lista de archivos para el procesamiento por lotes
                 const file = new File([blob], `captura_camara_${Date.now()}.png`, { type: 'image/png' });
-                uploadedFiles.push(file); // Añadir al array de archivos subidos
-                renderUploadedFilesList(); // Actualizar la lista visible
-                processBatchFilesButton.disabled = false; // Habilitar botón de procesar lote
+                uploadedFiles.push(file);
+                renderUploadedFilesList();
+                processBatchFilesButton.disabled = false;
             }, 'image/png');
         });
 
@@ -1439,7 +1622,7 @@
                 startCameraButton.disabled = false;
                 takePhotoButton.disabled = true;
                 stopCameraButton.disabled = true;
-                toggleCameraButton.disabled = true; // Deshabilitar el botón de cambiar cámara
+                toggleCameraButton.disabled = true;
                 imageQualityMessage.style.display = 'none';
             }
         });
@@ -1457,7 +1640,7 @@
             if (rubricFile) {
                 rubricAssistantOutput.textContent = "Procesando archivo de rúbrica...";
                 try {
-                    rubricTextContent = await readFileAndPerformOCR(rubricFile); // Reutilizar la función de OCR
+                    rubricTextContent = await readFileAndPerformOCR(rubricFile);
                 } catch (error) {
                     rubricAssistantOutput.textContent = `Error al procesar archivo de rúbrica: ${error.message}`;
                     console.error("Error al procesar archivo de rúbrica:", error);
@@ -1471,27 +1654,32 @@
             }
 
             const fullPrompt = `Eres un asistente de rúbricas IA. Tu tarea es generar o mejorar una rúbrica basada en la siguiente descripción. La rúbrica debe ser clara, concisa y con criterios medibles. Si se pide una escala, inclúyela.
+            Ofrece 3-5 versiones distintas de la rúbrica, cada una ligeramente diferente en enfoque o detalle, para que el profesor pueda elegir. Preséntalas en un formato fácil de leer y copiar, con un título claro para cada versión.
+
             Descripción de la rúbrica: ${rubricTextContent}
 
-            Formato de salida (solo la rúbrica):
-            [Nombre del Criterio 1] (Escala si aplica): [Descripción del criterio 1]
-            [Nombre del Criterio 2] (Escala si aplica): [Descripción del criterio 2]
-            ...
+            Ejemplo de formato de salida (separa cada rúbrica con "---"):
+            ### Versión 1: [Título breve] ###
+            [Contenido de la rúbrica]
+            ---
+            ### Versión 2: [Título breve] ###
+            [Contenido de la rúbrica]
+            ---
             `;
 
             const dataToSend = {
-                alumno: "Asistente de Rúbricas", // Dummy
-                evaluacion: "", // Dummy
-                rubrica: "", // Dummy
-                curso: "", // Dummy
-                nombrePrueba: "", // Dummy
-                flexibilidadIA: 5, // Default
-                notaMinima: 1.0, // Default
+                alumno: "Asistente de Rúbricas",
+                evaluacion: "",
+                rubrica: "",
+                curso: "",
+                nombrePrueba: "",
+                flexibilidadIA: 5,
+                notaMinima: 1.0,
                 prompt: fullPrompt
             };
 
             try {
-                const res = await fetch("/evaluar", { // Reusamos el endpoint de evaluar
+                const res = await fetch("/evaluar", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(dataToSend)
@@ -1503,80 +1691,186 @@
                 }
 
                 const result = await res.json();
-                rubricAssistantOutput.textContent = result.choices[0].message.content;
-                document.getElementById("rubrica").value = result.choices[0].message.content; // Rellenar campo principal
+                const aiResponse = result.choices[0].message.content;
+
+                // Dividir las rúbricas propuestas
+                const rubricVersions = aiResponse.split('---').filter(block => block.trim() !== '');
+
+                let formattedOutput = '';
+                if (rubricVersions.length > 0) {
+                    rubricVersions.forEach((version, index) => {
+                        const versionTitleMatch = version.match(/###\s*(.+?)\s*###/);
+                        const versionTitle = versionTitleMatch ? versionTitleMatch[1].trim() : `Opción ${index + 1}`;
+                        const versionContent = version.replace(/###\s*.+?\s*###/, '').trim();
+
+                        formattedOutput += `
+                            <div style="border: 1px solid var(--border-color); border-radius: 8px; padding: 1em; margin-bottom: 1em;">
+                                <h4>${versionTitle}</h4>
+                                <textarea id="rubricOption-${index}" rows="8" style="width: calc(100% - 20px); margin-bottom: 0.5em;">${versionContent}</textarea>
+                                <button onclick="selectRubricOption('rubricOption-${index}')" style="font-size: 0.9em; padding: 0.5em 1em;"><i class="fas fa-check"></i> Usar esta rúbrica</button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    formattedOutput = `<p>${aiResponse}</p><p>No se pudieron generar múltiples rúbricas. Verifique su prompt.</p>`;
+                }
+                rubricAssistantOutput.innerHTML = formattedOutput;
+
             } catch (error) {
                 rubricAssistantOutput.textContent = `Error al generar rúbrica: ${error.message}`;
                 console.error("Error en asistente de rúbricas:", error);
             }
         });
 
-        // --- Historial de Evaluaciones (Local Storage) ---
-        function saveEvaluationToHistory(evaluationData) {
-            evaluationsHistory.unshift(evaluationData);
-            localStorage.setItem('libelia_evaluations_history', JSON.stringify(evaluationsHistory));
-            loadEvaluationsHistory();
+        function selectRubricOption(textareaId) {
+            const selectedRubric = document.getElementById(textareaId).value;
+            document.getElementById("rubrica").value = selectedRubric;
+            alert("Rúbrica seleccionada y pegada en el campo principal.");
         }
 
-        function loadEvaluationsHistory() {
-            const storedHistory = localStorage.getItem('libelia_evaluations_history');
-            if (storedHistory) {
-                evaluationsHistory = JSON.parse(storedHistory);
+
+        // --- Historial de Evaluaciones (Local Storage y renderizado en tabla) ---
+        function saveEvaluationToHistory(evalData) {
+            // Primero, verifica si ya existe en el historial (por si viene de Supabase o es una actualización)
+            const existingIndex = evaluationsHistory.findIndex(e => e.id === evalData.id);
+            if (existingIndex !== -1) {
+                evaluationsHistory[existingIndex] = evalData; // Actualizar
             } else {
-                evaluationsHistory = [];
+                evaluationsHistory.unshift(evalData); // Añadir al inicio si es nueva
             }
+            localStorage.setItem('libelia_evaluations_history', JSON.stringify(evaluationsHistory));
+            renderEvaluationsHistory(); // Re-renderizar para reflejar el cambio
+        }
+
+        async function loadEvaluationsHistory() {
+            // Intentar cargar de Supabase primero
+            try {
+                // Asumiendo un endpoint en backend para obtener todas las evaluaciones
+                const res = await fetch("/memoria/all"); // Endpoint que devolverá todas las evaluaciones
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+                }
+                const data = await res.json();
+                if (data.evaluaciones && Array.isArray(data.evaluaciones)) {
+                    // Mapear los datos de Supabase al formato esperado, si es necesario
+                    evaluationsHistory = data.evaluaciones.map(dbItem => {
+                        // Supabase devuelve el JSON completo en 'evaluacion_json'
+                        return dbItem.evaluacion_json || dbItem; // Usar el JSON completo si está en ese campo
+                    });
+                    // Guardar en localStorage como caché para futuras cargas
+                    localStorage.setItem('libelia_evaluations_history', JSON.stringify(evaluationsHistory));
+                }
+            } catch (error) {
+                console.warn("No se pudo cargar el historial de Supabase, usando localStorage:", error);
+                const storedHistory = localStorage.getItem('libelia_evaluations_history');
+                if (storedHistory) {
+                    evaluationsHistory = JSON.parse(storedHistory);
+                } else {
+                    evaluationsHistory = [];
+                }
+            }
+            sortHistoryData(); // Ordenar al cargar
             renderEvaluationsHistory();
         }
 
-        function renderEvaluationsHistory() {
-            historialListDiv.innerHTML = '';
-            if (evaluationsHistory.length === 0) {
-                historialListDiv.innerHTML = '<p>No hay evaluaciones en el historial aún.</p>';
-                return;
-            }
+        function sortHistoryData() {
+            evaluationsHistory.sort((a, b) => {
+                let valA, valB;
 
-            evaluationsHistory.forEach(evalData => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'historial-item';
-                const date = new Date(evalData.timestamp).toLocaleString();
-                itemDiv.innerHTML = `
-                    <h3>${evalData.alumno} - ${evalData.nombrePrueba}</h3>
-                    <p><strong>Curso:</strong> ${evalData.curso}</p>
-                    <p><strong>Fecha:</strong> ${date}</p>
-                    <p><strong>Nota Final:</strong> <span style="font-size: 1.2em; font-weight: bold; color: ${evalData.nota_final_aplicada >= 4.0 ? 'green' : 'red'};">${evalData.nota_final_aplicada ? evalData.nota_final_aplicada.toFixed(1) : 'N/A'}</span></p>
-                    <div class="actions">
-                        <button onclick="viewEvaluationDetails('${evalData.id}')"><i class="fas fa-eye"></i> Ver Detalles</button>
-                        <button onclick="deleteEvaluationFromHistory('${evalData.id}')" style="background-color: var(--accent-color);"><i class="fas fa-trash-alt"></i> Eliminar</button>
-                    </div>
-                `;
-                historialListDiv.appendChild(itemDiv);
+                if (currentSortColumn === 'timestamp') {
+                    valA = new Date(a[currentSortColumn] || 0);
+                    valB = new Date(b[currentSortColumn] || 0);
+                } else if (currentSortColumn === 'nota_final_aplicada') {
+                    valA = a[currentSortColumn] || 0;
+                    valB = b[currentSortColumn] || 0;
+                } else {
+                    valA = (a[currentSortColumn] || '').toLowerCase();
+                    valB = (b[currentSortColumn] || '').toLowerCase();
+                }
+
+                if (valA < valB) return currentSortDirection === 'asc' ? -1 : 1;
+                if (valA > valB) return currentSortDirection === 'asc' ? 1 : -1;
+                return 0;
             });
         }
 
-        function viewEvaluationDetails(id) {
-            const evalData = evaluationsHistory.find(e => e.id == id);
-            if (evalData) {
-                document.getElementById("alumno").value = evalData.alumno || '';
-                document.getElementById("curso").value = evalData.curso || '';
-                document.getElementById("nombrePrueba").value = evalData.nombrePrueba || '';
-                document.getElementById("evaluacion").value = evalData.evaluacion || "Contenido original no disponible en el JSON guardado."; // Si guardaste el texto original
-                document.getElementById("rubrica").value = evalData.rubrica || "Rúbrica original no disponible en el JSON guardado."; // Si guardaste la rúbrica original
+        searchHistoryInput.addEventListener('input', renderEvaluationsHistory);
 
-                document.getElementById("flexibilidadIA").value = evalData.flexibilidadIA || 5;
-                document.getElementById("flexibilidadValue").textContent = evalData.flexibilidadIA || 5;
-                document.getElementById("notaMinima").value = evalData.notaMinima || 4.0;
-                document.getElementById("notaMinimaOverrideConfirm").value = '';
-                document.getElementById("notaMinimaOverrideWarning").style.display = 'none';
 
-                resultadoDiv.textContent = JSON.stringify(evalData, null, 2);
-                document.querySelector('.tab-button[data-tab="eval-section"]').click();
-            } else {
-                alert("Evaluación no encontrada.");
-            }
+        function renderEvaluationsHistory() {
+            const filterText = searchHistoryInput.value.toLowerCase();
+            const filteredHistory = evaluationsHistory.filter(evalData => {
+                return (evalData.alumno?.toLowerCase().includes(filterText) ||
+                        evalData.curso?.toLowerCase().includes(filterText) ||
+                        evalData.nombrePrueba?.toLowerCase().includes(filterText) ||
+                        evalData.feedback_general?.toLowerCase().includes(filterText));
+            });
+
+            historialListDiv.innerHTML = ''; // Limpiar el contenedor antes de renderizar
+            const table = document.createElement('table');
+            table.className = 'historial-table';
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th data-sort-column="alumno">Estudiante <i class="fas fa-sort"></i></th>
+                        <th data-sort-column="curso">Curso <i class="fas fa-sort"></i></th>
+                        <th data-sort-column="nombrePrueba">Evaluación <i class="fas fa-sort"></i></th>
+                        <th data-sort-column="nota_final_aplicada">Nota <i class="fas fa-sort"></i></th>
+                        <th data-sort-column="timestamp">Fecha <i class="fas fa-sort"></i></th>
+                        <th>Resumen</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            `;
+            historialListDiv.appendChild(table);
+            const tbody = table.querySelector('tbody');
+
+            filteredHistory.forEach(evalData => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${evalData.alumno || 'N/A'}</td>
+                    <td>${evalData.curso || 'N/A'}</td>
+                    <td>${evalData.nombrePrueba || 'N/A'}</td>
+                    <td style="font-weight: bold; color: ${evalData.nota_final_aplicada >= 4.0 ? 'green' : 'red'};">${evalData.nota_final_aplicada ? evalData.nota_final_aplicada.toFixed(1) : 'N/A'}</td>
+                    <td>${new Date(evalData.timestamp).toLocaleDateString()}</td>
+                    <td>${(evalData.feedback_general || 'Sin resumen.').substring(0, 100)}...</td>
+                    <td>
+                        <button onclick="viewEvaluationDetails('${evalData.id}')" style="padding: 5px 10px; font-size: 0.8em;"><i class="fas fa-eye"></i></button>
+                        <button onclick="deleteEvaluationFromHistory('${evalData.id}')" style="background-color: var(--accent-color); padding: 5px 10px; font-size: 0.8em;"><i class="fas fa-trash-alt"></i></button>
+                    </td>
+                `;
+            });
+
+            // Añadir manejadores de ordenación
+            table.querySelectorAll('th[data-sort-column]').forEach(header => {
+                header.addEventListener('click', () => {
+                    const column = header.dataset.sortColumn;
+                    if (currentSortColumn === column) {
+                        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSortColumn = column;
+                        currentSortDirection = 'asc';
+                    }
+                    sortHistoryData();
+                    renderEvaluationsHistory(); // Volver a renderizar la tabla
+                });
+                // Actualizar icono de ordenación
+                if (header.dataset.sortColumn === currentSortColumn) {
+                    header.classList.add(`sorted-${currentSortDirection}`);
+                } else {
+                     header.classList.remove('sorted-asc', 'sorted-desc');
+                }
+            });
         }
 
+
         function deleteEvaluationFromHistory(id) {
-            if (confirm("¿Estás seguro de que quieres eliminar esta evaluación del historial?")) {
+            if (confirm("¿Estás seguro de que quieres eliminar esta evaluación del historial y de Supabase?")) {
+                // Intentar eliminar de Supabase primero
+                deleteEvaluationFromSupabase(id); // Implementaremos esta función
+                // Luego eliminar de la caché local
                 evaluationsHistory = evaluationsHistory.filter(e => e.id != id);
                 localStorage.setItem('libelia_evaluations_history', JSON.stringify(evaluationsHistory));
                 renderEvaluationsHistory();
@@ -1584,10 +1878,45 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', loadEvaluationsHistory);
+        // --- Exportar a CSV ---
+        exportGradesCsvButton.addEventListener('click', () => {
+            if (evaluationsHistory.length === 0) {
+                alert("No hay evaluaciones en el historial para exportar.");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            // Encabezados
+            const headers = ["ID", "Estudiante", "Curso", "Evaluacion", "Nota Final", "Fecha", "Feedback General", "Puntos Fuertes", "Sugerencias Mejora"];
+            csvContent += headers.join(",") + "\r\n";
+
+            // Datos
+            evaluationsHistory.forEach(evalData => {
+                const row = [
+                    `"${evalData.id || ''}"`,
+                    `"${evalData.alumno || ''}"`,
+                    `"${evalData.curso || ''}"`,
+                    `"${evalData.nombrePrueba || ''}"`,
+                    `"${(evalData.nota_final_aplicada || '').toFixed(1) || ''}"`,
+                    `"${new Date(evalData.timestamp).toLocaleDateString() || ''}"`,
+                    `"${(evalData.feedback_general || '').replace(/"/g, '""')}"`, // Escapar comillas dobles
+                    `"${(evalData.puntos_fuertes || []).join('; ').replace(/"/g, '""')}"`,
+                    `"${(evalData.sugerencias_mejora || []).join('; ').replace(/"/g, '""')}"`
+                ];
+                csvContent += row.join(",") + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "evaluaciones_libelia.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
 
 
-        // --- Analysis and Portfolio ---
+        // --- Análisis y Portafolio ---
         filterAnalysisButton.addEventListener('click', renderAnalysisCharts);
         generatePortfolioButton.addEventListener('click', generatePortfolioPDF);
 
@@ -1617,11 +1946,9 @@
                 `;
             }
 
-            // Re-get canvas references afterinnerHTML update
             const newGradesChartCanvas = document.getElementById('gradesChart');
             const newCriteriaChartCanvas = document.getElementById('criteriaChart');
 
-            // Grades Chart
             const gradesLabels = filteredEvals.map(e => `${e.nombrePrueba} (${new Date(e.timestamp).toLocaleDateString()})`);
             const gradesData = filteredEvals.map(e => e.nota_final_aplicada);
 
@@ -1657,7 +1984,6 @@
                 }
             });
 
-            // Criteria Chart (Average scores per criterion)
             const criteriaScores = {};
             filteredEvals.forEach(evalData => {
                 if (evalData.analisis_por_criterio) {
@@ -1765,8 +2091,7 @@
             doc.addPage();
 
             // Add Charts
-            // Re-render charts to get fresh images if they were filtered
-            renderAnalysisCharts();
+            renderAnalysisCharts(); // Re-render charts to get fresh images if they were filtered
 
             if (chartInstances.gradesChart) {
                 doc.setFontSize(18);
