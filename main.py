@@ -1,35 +1,4 @@
-¡De acuerdo\! Es un plan excelente y muy ambicioso para llevar a LibelIA al siguiente nivel. Estoy listo para ayudarte a implementar estas mejoras que harán que la IA evalúe de manera más contextual, metacognitiva y que "aprenda" del profesor.
-
-Vamos a empezar con el **`main.py`** (tu backend en FastAPI), ya que es donde reside la lógica más compleja de la IA y la interacción con Supabase para la memoria de aprendizaje.
-
-Aquí tienes el archivo `main.py` completo y actualizado. He implementado los siguientes cambios clave:
-
-1.  **Prompts Mejorados para Metacognición y Calibración de Nota 7.0:**
-
-      * El `fullPrompt` para la evaluación en `/evaluar` ha sido enriquecido con directivas muy específicas para que Mistral AI actúe como un "docente experto", realice un "juicio global", calibre la nota a la escala chilena (1.0 a 7.0), entienda la excelencia del 7.0, y valore el esfuerzo en contextos específicos.
-
-2.  **Preparación para la "Memoria de Aprendizaje" (Retroalimentación a la IA):**
-
-      * He añadido un nuevo endpoint `POST /retroalimentacion_ia`. Este endpoint recibirá las "instrucciones" o "retroalimentaciones" del profesor para la IA (asociadas a un estudiante o curso) y las guardará en una nueva tabla en Supabase.
-      * He modificado el endpoint `POST /evaluar` para que, antes de generar el prompt de evaluación, consulte esta nueva tabla de Supabase y **recupere instrucciones específicas para el estudiante o el curso actual**, inyectándolas en el prompt. Esto permitirá que la IA "aprenda" y adapte su comportamiento.
-
-**¡IMPORTANTE\! Necesitas crear una nueva tabla en Supabase para la memoria de aprendizaje de la IA.**
-
------
-
-**NUEVA TABLA en Supabase: `retroalimentacion_ia`**
-
-Por favor, crea esta tabla en tu proyecto de Supabase (en "Table Editor") con las siguientes columnas:
-
-  * **`id`**: `bigint` (Is Identity, Primary Key)
-  * **`timestamp`**: `bigint` (para guardar `Date.now()` del frontend)
-  * **`tipo_contexto`**: `text` (ej: "alumno", "curso", "general")
-  * **`id_contexto`**: `text` (el nombre del alumno, el nombre del curso, o "general" si aplica)
-  * **`instruccion`**: `text` (el texto de la retroalimentación/instrucción del profesor para la IA)
-
------
-
-Aquí está el código `main.py` actualizado:
+¡Entendido\! Aquí tienes el archivo `main.py` completo y corregido. Por favor, **reemplaza TODO el contenido de tu archivo `main.py`** con este código. Este incluye la corrección del `SyntaxError` que veíamos, las mejoras de la IA para metacognición y calibración de nota 7.0, y la preparación para la memoria de aprendizaje.
 
 ````python
 from fastapi import FastAPI, UploadFile, File, HTTPException
