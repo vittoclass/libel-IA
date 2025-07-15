@@ -379,3 +379,14 @@ async def ocr(file: UploadFile = File(...)):
             raise HTTPException(status_code=exc.response.status_code, detail={"error": f"Error de la API de Azure OCR ({exc.response.status_code}): {error_detail}"})
         except Exception as exc:
             raise HTTPException(status_code=500, detail={"error": f"Error inesperado al procesar OCR: {type(exc).__name__} - {exc}"})
+# ... (todo tu código anterior intacto, sin cambios)
+
+@app.get("/debug_azure")
+async def debug_azure():
+    azure_key = os.getenv("AZURE_VISION_KEY")
+    azure_endpoint = os.getenv("AZURE_VISION_ENDPOINT")
+
+    if not azure_key or not azure_endpoint:
+        return {"status": "ERROR", "detail": "Azure KEY o ENDPOINT no configurados correctamente"}
+
+    return {"status": "OK", "detail": "Azure KEY y ENDPOINT están presentes"}
