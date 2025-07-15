@@ -3,12 +3,13 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import httpx, os
-from supabase import create_client, Client # Importar Supabase
+from supabase import create_client, Client
+import asyncio # Necesario para el asyncio.sleep
 
 # --- Configuración de Supabase ---
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-supabase: Client = None # Inicializar como None, se asignará en startup
+supabase: Client = None
 
 # Debug: Verifica si las variables están presentes
 print("DEBUG - MISTRAL_API_KEY:", os.getenv("MISTRAL_API_KEY"))
@@ -95,7 +96,6 @@ async def memoria_all():
         raise HTTPException(status_code=500, detail={"error": "Supabase no está inicializado. Verifica las variables de entorno."})
     
     try:
-        # Ordenar por timestamp descendente para las más recientes primero
         response = supabase.table("evaluaciones").select("*").order("timestamp", desc=True).execute()
         return JSONResponse(content={"evaluaciones": response.data})
     except Exception as e:
@@ -110,7 +110,6 @@ class EvaluacionCompleta(BaseModel):
     nombrePrueba: str
     nota_final_aplicada: float
     feedback_general: str
-    # Los demás campos del JSON de la IA se guardarán dentro de evaluacion_json
 
     # Campos que el frontend añade para guardar el contexto original
     texto_evaluado: str = None
@@ -182,7 +181,7 @@ async def ocr(file: UploadFile = File(...)):
         try:
             # Paso 1: Enviar la imagen/documento para análisis
             read_response = await client.post(read_api_url, headers=headers, content=image_bytes, timeout=60.0)
-            read_response.raise_for_status() # Levanta excepción para errores HTTP
+            read_response.raise_for_status()
 
             operation_location = read_response.headers.get("Operation-Location")
             if not operation_location:
@@ -191,14 +190,14 @@ async def ocr(file: UploadFile = File(...)):
             # Paso 2: Sondear los resultados del análisis
             result_data = {}
             status = "notStarted"
-            max_retries = 15 # Máximo de reintentos
+            max_retries = 15
             retries = 0
             while status in ["notStarted", "running"] and retries < max_retries:
-                await client.aclose() # Cierra la conexión anterior antes de una nueva petición
-                await httpx.AsyncClient().aclose() # Asegura que no queden clientes abiertos
-                await asyncio.sleep(1) # Espera 1 segundo
+                # No cerramos el cliente `client` aquí para reusar la conexión,
+                # pero sí esperamos para no inundar Azure con peticiones
+                await asyncio.sleep(1)
                 retries += 1
-                result_response = await httpx.AsyncClient().get(operation_location, headers={"Ocp-Apim-Subscription-Key": azure_key}, timeout=60.0)
+                result_response = await client.get(operation_location, headers={"Ocp-Apim-Subscription-Key": azure_key}, timeout=60.0)
                 result_response.raise_for_status()
                 result_data = result_response.json()
                 status = result_data.get("status")
@@ -207,6 +206,7 @@ async def ocr(file: UploadFile = File(...)):
                 # Extraer texto de readResults (estructura común para v3.2 y v4.0 Read API)
                 extracted_text_content = ""
                 if result_data.get("analyzeResult") and result_data["analyzeResult"].get("readResults"):
+                    # Recorrer páginas y líneas
                     for page in result_data["analyzeResult"]["readResults"]:
                         if page.get("lines"):
                             for line in page["lines"]:
@@ -228,4 +228,5 @@ async def ocr(file: UploadFile = File(...)):
                 pass
             raise HTTPException(status_code=exc.response.status_code, detail={"error": f"Error de la API de Azure OCR ({exc.response.status_code}): {error_detail}"})
         except Exception as exc:
-            raise HTTPException(status_code=500, detail={"error": f"Error inesperado al procesar OCR: {type(exc).__name__} - {exc}"}"})
+            # Corrección de la línea 231: Eliminada la comilla doble extra al final de la cadena de detalle
+            raise HTTPException(status_code=500, detail={"error": f"Error inesperado al procesar OCR: {type(exc).__name__} - {exc}"})
