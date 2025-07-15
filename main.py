@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -380,4 +379,3 @@ async def ocr(file: UploadFile = File(...)):
             raise HTTPException(status_code=exc.response.status_code, detail={"error": f"Error de la API de Azure OCR ({exc.response.status_code}): {error_detail}"})
         except Exception as exc:
             raise HTTPException(status_code=500, detail={"error": f"Error inesperado al procesar OCR: {type(exc).__name__} - {exc}"})
-````
