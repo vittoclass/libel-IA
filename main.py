@@ -34,9 +34,7 @@ Nombre del estudiante: {data.alumno}
 Curso: {data.curso}
 
 Texto del estudiante:
-"""
 {data.evaluacion}
-"""
 
 Rúbrica:
 {data.rubrica}
@@ -133,5 +131,4 @@ async def extraer_texto_azure(file: UploadFile = File(...)):
 @app.post("/guardar")
 async def guardar_resultado(request: Request):
     data = await request.json()
-    # Aquí podrías conectar con Supabase o base de datos externa
     return {"status": "ok", "mensaje": "Guardado correctamente (demo)"}
