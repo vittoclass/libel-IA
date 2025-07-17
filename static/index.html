@@ -1,134 +1,120 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Evaluador IA Profesional - LibélIA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Evaluador IA Profesional</title>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f4f6f8;
-      margin: 0;
-      padding: 2rem;
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
       color: #333;
+      max-width: 800px;
+      margin: auto;
+      padding: 20px;
     }
     h1 {
-      color: #2c3e50;
       text-align: center;
-      margin-bottom: 2rem;
+      color: #004080;
     }
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 2rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      max-width: 700px;
-      margin: auto;
-    }
-    label {
-      display: block;
-      margin-top: 1rem;
-      font-weight: bold;
-    }
-    input, select {
+    input, textarea, select, button {
       width: 100%;
-      padding: 0.6rem;
-      border-radius: 6px;
+      padding: 10px;
+      margin: 10px 0;
       border: 1px solid #ccc;
-      margin-top: 0.3rem;
+      border-radius: 4px;
     }
-    #preview {
-      margin-top: 1rem;
+    #imagen-preview {
+      margin-top: 10px;
       max-width: 100%;
-      height: auto;
+      border: 1px solid #aaa;
+    }
+    #resultado {
+      background: #fff;
       border: 1px solid #ccc;
-    }
-    button {
-      margin-top: 2rem;
-      width: 100%;
-      padding: 1rem;
-      background: #007BFF;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 1.1rem;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    pre {
-      background: #f0f0f0;
-      padding: 1rem;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 20px;
       white-space: pre-wrap;
-      border-radius: 8px;
-      margin-top: 2rem;
+    }
+    .label {
+      font-weight: bold;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
-  <h1>Evaluador IA LibélIA</h1>
-  <div class="card">
-    <form id="evalForm">
-      <label for="nombre">Nombre del estudiante:</label>
-      <input type="text" id="nombre" name="nombre" required>
+  <h1>Evaluador IA Profesional</h1>
 
-      <label for="curso">Curso:</label>
-      <input type="text" id="curso" name="curso" required>
+  <label class="label">Nombre del Estudiante:</label>
+  <input type="text" id="nombre" placeholder="Ej: Juan Pérez" required />
 
-      <label for="asignatura">Asignatura (opcional):</label>
-      <input type="text" id="asignatura" name="asignatura" placeholder="Detectar automáticamente">
+  <label class="label">Curso:</label>
+  <input type="text" id="curso" placeholder="Ej: 8°B" required />
 
-      <label for="file">Selecciona una imagen de evaluación:</label>
-      <input type="file" id="file" name="file" accept="image/*" required>
+  <label class="label">Asignatura (opcional):</label>
+  <input type="text" id="asignatura" placeholder="Ej: Lenguaje" />
 
-      <img id="preview" src="#" alt="Vista previa" style="display:none;"/>
+  <label class="label">Rúbrica (opcional):</label>
+  <textarea id="rubrica" rows="4" placeholder="Puedes ingresar criterios de evaluación si lo deseas"></textarea>
 
-      <button type="submit">Evaluar</button>
-    </form>
+  <label class="label">Selecciona imagen de la evaluación:</label>
+  <input type="file" id="imagen" accept="image/*" />
+  <img id="imagen-preview" src="" alt="Previsualización de la imagen" style="display:none;" />
 
-    <div id="resultado" style="display:none;">
-      <h2>Resultado de la Evaluación</h2>
-      <pre id="jsonResult"></pre>
-    </div>
-  </div>
+  <button onclick="evaluarImagen()">📤 Evaluar con IA</button>
+
+  <div id="resultado"></div>
 
   <script>
-    const fileInput = document.getElementById('file');
-    const preview = document.getElementById('preview');
+    function evaluarImagen() {
+      const fileInput = document.getElementById("imagen");
+      const nombre = document.getElementById("nombre").value;
+      const curso = document.getElementById("curso").value;
+      const asignatura = document.getElementById("asignatura").value;
+      const rubrica = document.getElementById("rubrica").value;
 
-    fileInput.addEventListener('change', () => {
-      const file = fileInput.files[0];
-      if (file) {
-        preview.src = URL.createObjectURL(file);
-        preview.style.display = 'block';
-      }
-    });
-
-    document.getElementById('evalForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-
-      const response = await fetch('/evaluar', {
-        method: 'POST',
-        body: formData
-      });
-
-      const resultEl = document.getElementById('resultado');
-      const jsonEl = document.getElementById('jsonResult');
-
-      if (!response.ok) {
-        jsonEl.textContent = "Error al evaluar. Intenta nuevamente.";
-        resultEl.style.display = 'block';
+      if (!fileInput.files.length || !nombre || !curso) {
+        alert("Debes ingresar nombre, curso y una imagen");
         return;
       }
 
-      try {
-        const data = await response.json();
-        jsonEl.textContent = JSON.stringify(data, null, 2);
-        resultEl.style.display = 'block';
-      } catch (err) {
-        jsonEl.textContent = "Respuesta inválida del servidor.";
-        resultEl.style.display = 'block';
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+      formData.append("nombre", nombre);
+      formData.append("curso", curso);
+      formData.append("asignatura", asignatura);
+      formData.append("rubrica", rubrica);
+
+      fetch("/evaluar", {
+        method: "POST",
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        const res = `📚 Asignatura: ${data.asignatura}
+📄 Tipo: ${data.tipo}
+📈 Puntaje: ${data.puntaje}
+✅ Nota: ${data.nota}
+
+🧠 Feedback:
+${data.feedback}`;
+        document.getElementById("resultado").innerText = res;
+      })
+      .catch(err => {
+        document.getElementById("resultado").innerText = "Error: " + err;
+      });
+    }
+
+    document.getElementById("imagen").addEventListener("change", function () {
+      const preview = document.getElementById("imagen-preview");
+      const file = this.files[0];
+      if (file) {
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = "block";
+      } else {
+        preview.style.display = "none";
       }
     });
   </script>
