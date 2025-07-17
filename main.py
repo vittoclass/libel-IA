@@ -68,23 +68,23 @@ Formato de respuesta en JSON:
         ]
     }
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "https://api.mistral.ai/v1/chat/completions",
-            headers=headers,
-            json=body
-        )
-
     try:
-        content = response.json()["choices"][0]["message"]["content"]
-        result = eval(content.strip())
-    except:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.mistral.ai/v1/chat/completions",
+                headers=headers,
+                json=body
+            )
+            response.raise_for_status()
+            content = response.json()["choices"][0]["message"]["content"]
+            result = eval(content.strip())
+    except Exception as e:
         result = {
             "asignatura": asignatura if asignatura else "Desconocida",
             "tipo": "Desconocido",
             "nota": "-",
             "puntaje": "-",
-            "feedback": "No se pudo analizar correctamente la respuesta."
+            "feedback": f"Error interno del servidor: {str(e)}"
         }
 
     return JSONResponse(content=result)
