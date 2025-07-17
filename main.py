@@ -25,34 +25,29 @@ async def evaluar(
     file: UploadFile = File(...),
     nombre: str = Form(...),
     curso: str = Form(...),
-    asignatura: str = Form("")
+    asignatura: str = Form(""),
+    rubrica: str = Form("")
 ):
     texto_extraido = await extract_text_from_image(file)
 
     prompt = f"""
-Eres un evaluador profesional de alto nivel con experiencia en todas las asignaturas escolares y universitarias en Chile y Latinoamérica. Evalúa el contenido proporcionado como si fueras un profesor especialista en el área correspondiente.
+Eres un evaluador experto con alta formación pedagógica en Latinoamérica. Evalúa rigurosamente este contenido como si fueras un profesor especializado.
 
-Estudiante: {nombre}
+Nombre del estudiante: {nombre}
 Curso: {curso}
-Asignatura: {asignatura if asignatura else 'Detectar automáticamente'}
+Asignatura: {asignatura or "Detectar automáticamente"}
+Rúbrica (si aplica): {rubrica}
 
-Texto extraído de imagen:
+Texto escaneado desde imagen:
 {texto_extraido}
 
-Requisitos:
-- Detecta automáticamente el tipo de evaluación y asignatura si no se indica.
-- Evalúa según estándares profesionales del área y nivel (incluyendo LGE Art. 67 si es Chile).
-- Aplica criterios de corrección reales (profundidad, pertinencia, redacción, contenido visual, cálculos, etc.)
-- Otorga una nota chilena de 1,0 a 7,0.
-- Entrega un JSON con: asignatura detectada, tipo de evaluación, puntaje obtenido, nota, retroalimentación profesional extensa.
-
-Formato de respuesta en JSON:
+Entrega los resultados como un JSON profesional con esta estructura:
 {{
-  "asignatura": "...",
-  "tipo": "...",
-  "puntaje": "...",
-  "nota": "...",
-  "feedback": "..."
+  "asignatura": "Asignatura detectada o especificada",
+  "tipo": "Tipo de evaluación (por ejemplo: desarrollo, alternativa, prueba de arte, etc.)",
+  "puntaje": "Puntaje estimado en base a calidad, exactitud, profundidad",
+  "nota": "Nota chilena del 1.0 al 7.0",
+  "feedback": "Retroalimentación profesional, clara y formativa"
 }}
 """
 
@@ -77,13 +72,22 @@ Formato de respuesta en JSON:
             )
             response.raise_for_status()
             content = response.json()["choices"][0]["message"]["content"]
-            result = eval(content.strip())
+
+            # Usamos eval solo si estamos seguros que es un JSON puro
+            result = eval(content.strip()) if content.strip().startswith("{") else {
+                "asignatura": asignatura or "Desconocida",
+                "tipo": "No detectado",
+                "puntaje": "-",
+                "nota": "-",
+                "feedback": content.strip()
+            }
+
     except Exception as e:
         result = {
-            "asignatura": asignatura if asignatura else "Desconocida",
+            "asignatura": asignatura or "Desconocida",
             "tipo": "Desconocido",
-            "nota": "-",
             "puntaje": "-",
+            "nota": "-",
             "feedback": f"Error interno del servidor: {str(e)}"
         }
 

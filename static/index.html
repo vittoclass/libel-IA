@@ -1,118 +1,90 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Evaluador IA Profesional</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      color: #333;
-      max-width: 800px;
-      margin: auto;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-      color: #004080;
-    }
-    input, textarea, select, button {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    #imagen-preview {
-      margin-top: 10px;
-      max-width: 100%;
-      border: 1px solid #aaa;
-    }
-    #resultado {
-      background: #fff;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      padding: 15px;
-      margin-top: 20px;
-      white-space: pre-wrap;
-    }
-    .label {
-      font-weight: bold;
-      margin-top: 10px;
-    }
-  </style>
-</head>
-<body>
-  <h1>Evaluador IA Profesional</h1>
+from fastapi import FastAPI, UploadFile, File, Form
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
+import os, httpx
+from PIL import Image
+import pytesseract
 
-  <label class="label">Nombre del Estudiante:</label>
-  <input type="text" id="nombre" placeholder="Ej: Juan Pérez" required />
+app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-  <label class="label">Curso:</label>
-  <input type="text" id="curso" placeholder="Ej: 8°B" required />
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    return FileResponse("static/index.html")
 
-  <label class="label">Asignatura:</label>
-  <input type="text" id="asignatura" placeholder="Ej: Lenguaje" />
+async def extract_text_from_image(file: UploadFile) -> str:
+    contents = await file.read()
+    with open("temp_image.jpg", "wb") as f:
+        f.write(contents)
+    image = Image.open("temp_image.jpg")
+    text = pytesseract.image_to_string(image)
+    return text.strip()
 
-  <label class="label">Rúbrica:</label>
-  <textarea id="rubrica" rows="4" placeholder="Puedes ingresar criterios de evaluación si lo deseas"></textarea>
+@app.post("/evaluar")
+async def evaluar(
+    file: UploadFile = File(...),
+    nombre: str = Form(...),
+    curso: str = Form(...),
+    asignatura: str = Form("")
+):
+    texto_extraido = await extract_text_from_image(file)
 
-  <label class="label">Selecciona una o más imágenes:</label>
-  <input type="file" id="imagenes" accept="image/*" multiple />
-  <div id="preview-container"></div>
+    prompt = f"""
+Eres un evaluador profesional de alto nivel con experiencia en todas las asignaturas escolares y universitarias en Chile y Latinoamérica. Evalúa el contenido proporcionado como si fueras un profesor especialista en el área correspondiente.
 
-  <button onclick="evaluarImagenes()">📤 Evaluar con IA</button>
+Estudiante: {nombre}
+Curso: {curso}
+Asignatura: {asignatura if asignatura else 'Detectar automáticamente'}
 
-  <div id="resultado"></div>
+Texto extraído de imagen:
+{texto_extraido}
 
-  <script>
-    function evaluarImagenes() {
-      const fileInput = document.getElementById("imagenes");
-      const nombre = document.getElementById("nombre").value;
-      const curso = document.getElementById("curso").value;
-      const asignatura = document.getElementById("asignatura").value;
-      const rubrica = document.getElementById("rubrica").value;
+Requisitos:
+- Detecta automáticamente el tipo de evaluación y asignatura si no se indica.
+- Evalúa según estándares profesionales del área y nivel (incluyendo LGE Art. 67 si es Chile).
+- Aplica criterios de corrección reales (profundidad, pertinencia, redacción, contenido visual, cálculos, etc.)
+- Otorga una nota chilena de 1,0 a 7,0.
+- Entrega un JSON con: asignatura detectada, tipo de evaluación, puntaje obtenido, nota, retroalimentación profesional extensa.
 
-      if (!fileInput.files.length || !nombre || !curso) {
-        alert("Debes ingresar nombre, curso y al menos una imagen");
-        return;
-      }
+Formato de respuesta en JSON:
+{{
+  "asignatura": "...",
+  "tipo": "...",
+  "puntaje": "...",
+  "nota": "...",
+  "feedback": "..."
+}}
+"""
 
-      const formData = new FormData();
-      for (let i = 0; i < fileInput.files.length; i++) {
-        formData.append("files", fileInput.files[i]);
-      }
-      formData.append("nombre", nombre);
-      formData.append("curso", curso);
-      formData.append("asignatura", asignatura);
-      formData.append("rubrica", rubrica);
-
-      fetch("/evaluar", {
-        method: "POST",
-        body: formData
-      })
-      .then(res => res.json())
-      .then(data => {
-        const res = `📚 Asignatura: ${data.asignatura}\n📄 Tipo: ${data.tipo}\n📈 Puntaje: ${data.puntaje}\n✅ Nota: ${data.nota}\n\n🧠 Feedback:\n${data.feedback}`;
-        document.getElementById("resultado").innerText = res;
-      })
-      .catch(err => {
-        document.getElementById("resultado").innerText = "Error: " + err;
-      });
+    headers = {
+        "Authorization": f"Bearer {os.getenv('MISTRAL_API_KEY')}",
+        "Content-Type": "application/json"
     }
 
-    document.getElementById("imagenes").addEventListener("change", function () {
-      const container = document.getElementById("preview-container");
-      container.innerHTML = "";
-      for (let i = 0; i < this.files.length; i++) {
-        const img = document.createElement("img");
-        img.src = URL.createObjectURL(this.files[i]);
-        img.style.maxWidth = "100%";
-        img.style.marginTop = "10px";
-        container.appendChild(img);
-      }
-    });
-  </script>
-</body>
-</html>
+    body = {
+        "model": "mistral-large-latest",
+        "messages": [
+            {"role": "user", "content": prompt}
+        ]
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.mistral.ai/v1/chat/completions",
+                headers=headers,
+                json=body
+            )
+            response.raise_for_status()
+            content = response.json()["choices"][0]["message"]["content"]
+            result = eval(content.strip())
+    except Exception as e:
+        result = {
+            "asignatura": asignatura if asignatura else "Desconocida",
+            "tipo": "Desconocido",
+            "nota": "-",
+            "puntaje": "-",
+            "feedback": f"Error interno del servidor: {str(e)}"
+        }
+
+    return JSONResponse(content=result)
