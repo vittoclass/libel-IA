@@ -696,7 +696,8 @@
         let currentSortDirection = 'desc'; // Dirección de ordenación por defecto (descendente para fecha)
 
         // Configuración para PDF.js (Importante para que funcione el OCR de PDFs en el frontend)
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
+        // PDF.js worker is already included in the HTML via unpkg link
+        // pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
 
 
         // DOM Elements
@@ -774,7 +775,7 @@
 
         // --- Lógica de persistencia de correcciones de nombres y cursos ---
         document.addEventListener('DOMContentLoaded', () => {
-            loadEvaluationsHistory(); // Tu función existente para cargar historial
+            loadEvaluationsHistory();
             const storedNameCorrections = localStorage.getItem('libelia_name_corrections');
             if (storedNameCorrections) {
                 nameCorrections = JSON.parse(storedNameCorrections);
@@ -793,7 +794,6 @@
             localStorage.setItem('libelia_course_corrections', JSON.stringify(courseCorrections));
         }
 
-        // Aplica corrección guardada o almacena nueva corrección de nombre
         function applyOrStoreNameCorrection(originalDetectedName, correctedName) {
             const originalLower = originalDetectedName.toLowerCase().trim();
             const correctedLower = correctedName.toLowerCase().trim();
@@ -802,17 +802,14 @@
                 return;
             }
 
-            // Si el nombre original era un placeholder, guardamos el nombre corregido bajo su versión en minúsculas
             if (originalLower === "nombre no detectado" || originalLower === "error al extraer nombre") {
                  nameCorrections[correctedLower] = correctedName;
             } else {
-                // Si es una corrección de un nombre detectado real
                 nameCorrections[originalLower] = correctedName;
             }
             saveNameCorrections();
         }
 
-        // Aplica corrección guardada o almacena nueva corrección de curso
         function applyOrStoreCourseCorrection(originalDetectedCourse, correctedCourse) {
             const originalLower = originalDetectedCourse.toLowerCase().trim();
             const correctedLower = correctedCourse.toLowerCase().trim();
@@ -848,7 +845,7 @@
         // Manejadores de clic para los botones del modal de nota mínima (SE MANTIENEN LOS LISTENERS, PERO NO TENDRÁN EFECTO SI EL MODAL NUNCA SE ABRE)
         confirmNotaMinimaButton.addEventListener('click', () => {
             notaMinimaModal.style.display = 'none';
-            if (resolveNotaMinimaPromise) { // Este if es solo para evitar errores si la promesa fuera nula por alguna razón
+            if (resolveNotaMinimaPromise) {
                 resolveNotaMinimaPromise(true);
             }
         });
@@ -1231,7 +1228,7 @@
             }
             ocrBatchStatusDiv.innerHTML += `<div class="alert alert-success"><i class="fas fa-check-circle"></i> Procesamiento de OCR completado para todos los estudiantes. ¡Revisa el lote!</div>`;
             renderBatchReviewSection();
-        }
+        });
 
         async function readFileAndPerformOCR(file) {
             if (file.type.startsWith('image/') || file.type === 'application/pdf') {
@@ -1297,7 +1294,7 @@
                 nombrePrueba: "", // Dummy
                 flexibilidadIA: 0, // No aplica
                 notaMinima: 1.0, // No aplica
-                prompt: prompt // Este prompt se usa para la extracción interna, no la evaluación principal
+                prompt: prompt
             };
 
             try {
@@ -1668,18 +1665,18 @@
             `;
 
             const dataToSend = {
-                alumno: "Asistente de Rúbricas",
-                evaluacion: "",
-                rubrica: "",
-                curso: "",
-                nombrePrueba: "",
-                flexibilidadIA: 5,
-                notaMinima: 1.0,
-                prompt: fullPrompt // Este prompt se usa para la generación interna de rúbricas
+                alumno: "Asistente de Rúbricas", # Dummy data, not used for actual evaluation here
+                evaluacion: "", # Dummy data
+                rubrica: "", # Dummy data
+                curso: "", # Dummy data
+                nombrePrueba: "", # Dummy data
+                flexibilidadIA: 5, # Default
+                notaMinima: 1.0, # Default
+                prompt: fullPrompt # This prompt is used for rubric generation
             };
 
             try {
-                const res = await fetch("/evaluar", {
+                const res = await fetch("/evaluar", { # Reusing /evaluar endpoint for simplicity
                     method: "POST",
                     headers: {"Content-Type": "application/json"},
                     body: JSON.stringify(dataToSend)
@@ -1742,11 +1739,8 @@
                 }
                 const result = await res.json();
                 console.log("Eliminado de Supabase:", result);
-                // Si la eliminación de Supabase fue exitosa, no hacemos un alert aquí
-                // El alert general lo manejamos al borrar del local
             } catch (error) {
                 console.error("Error al eliminar evaluación de Supabase:", error);
-                // Solo mostrar un alert si realmente falla la eliminación de Supabase
                 alert(`Error al eliminar de Supabase: ${error.message}.`);
             }
         }

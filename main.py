@@ -16,7 +16,7 @@ print("DEBUG - MISTRAL_API_KEY:", os.getenv("MISTRAL_API_KEY"))
 print("DEBUG - AZURE_VISION_KEY:", os.getenv("AZURE_VISION_KEY"))
 print("DEBUG - AZURE_VISION_ENDPOINT:", os.getenv("AZURE_VISION_ENDPOINT"))
 print("DEBUG - SUPABASE_URL:", SUPABASE_URL)
-print("DEBUG - SUPABASE_KEY:", SUPABASE_KEY)
+print("DEBUG - SUPABASE_KEY:", os.getenv("SUPABASE_KEY")) # Usar os.getenv para debug
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -72,7 +72,8 @@ async def evaluar(data: EvaluacionRequest):
         * Enfoca el feedback en los logros, el progreso y los próximos pasos realistas, valorando el esfuerzo por encima de la perfección absoluta cuando el contexto lo justifique.
     3.  **Retroalimentación Formativa y Justificación con Citas:**
         * Ofrece siempre feedback constructivo y útil.
-        * Tanto en "Puntos Fuertes" como en "Sugerencias de Mejora" (o análisis por criterio), **justifica tus afirmaciones citando fragmentos específicos (5-15 palabras) del propio texto del estudiante como evidencia.**
+        * **¡CRÍTICO! PARA CADA PUNTO EN "puntos_fuertes" y "sugerencias_mejora", DEBES INCLUIR UNA CITA EXACTA (entre 5 y 15 palabras) EXTRAÍDA DIRECTAMENTE del 'Texto del estudiante a evaluar' como evidencia. Si no puedes encontrar una cita perfecta, busca la más cercana o representativa.**
+        * **¡MUY IMPORTANTE! Si no hay una cita obvia, NO LA INVENTES, pero esfuérzate al máximo por encontrar una que sirva de apoyo textual.**
         * Asegura que los "Sugerencias de Mejora" sean pasos concretos, claros y alcanzables.
 
     """
