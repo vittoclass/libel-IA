@@ -1,3 +1,8 @@
+¡Comprendido\! Aquí tienes el archivo `index.html` completo y con la corrección para el botón "Seleccionar Archivos". He asegurado que el `input type="file"` ahora se oculte con CSS en lugar de `hidden`.
+
+Por favor, **reemplaza TODO el contenido de tu archivo `index.html` con este código.**
+
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -458,8 +463,7 @@
                 <div class="drop-area" id="drop-area">
                     <i class="fas fa-cloud-upload-alt"></i>
                     <p>Arrastra y suelta imágenes, PDFs o DOCX aquí, o haz clic para seleccionar.</p>
-                    <input type="file" id="imagenDocumento" name="imagenDocumento" accept="image/*,.pdf,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple hidden>
-                    <button type="button" id="selectFileButton"><i class="fas fa-folder-open"></i> Seleccionar Archivos</button>
+                    <input type="file" id="imagenDocumento" name="imagenDocumento" accept="image/*,.pdf,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple style="display: none;"> <button type="button" id="selectFileButton"><i class="fas fa-folder-open"></i> Seleccionar Archivos</button>
                 </div>
                 <div id="camera-section" style="margin-top: 1.5em;">
                     <h3><i class="fas fa-camera"></i> Capturar desde Cámara</h3>
@@ -898,7 +902,7 @@
 
         evalForm.addEventListener("submit", async e => {
             e.preventDefault();
-            resultadoDiv.textContent = "Evaluando...";
+            resultadoDiv.innerHTML = `<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Evaluando...</div>`; // Mensaje de carga mejorado
             notaMinimaWarning.style.display = 'none';
             notaMinimaOverrideWarning.style.display = 'none';
 
@@ -910,31 +914,31 @@
             const flexibilidadIA = flexibilidadIAInput.value;
             let notaMinima = parseFloat(notaMinimaInput.value);
 
-            // Validaciones
+            // Validaciones (más específicas y visibles)
+            let validationErrors = [];
             if (!alumno || alumno.trim() === "" || alumno.toLowerCase().includes("no detectado") || alumno.toLowerCase().includes("error al extraer")) {
-                resultadoDiv.innerHTML = `<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Error: El nombre del estudiante es inválido o no se ha rellenado. Por favor, revisa la sección de carga de documentos o rellénalo.</div>`;
-                return;
+                validationErrors.push("El nombre del estudiante es inválido o no se ha rellenado. Por favor, revisa la sección de carga de documentos o rellénalo.");
             }
             if (!evaluacion || evaluacion.trim() === "") {
-                resultadoDiv.innerHTML = `<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Error: El campo de texto del estudiante está vacío. Por favor, usa el OCR o pega el texto.</div>`;
-                return;
+                validationErrors.push("El campo de texto del estudiante está vacío. Por favor, usa el OCR o pega el texto.");
             }
             if (!rubrica || rubrica.trim() === "") {
-                resultadoDiv.innerHTML = `<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Error: El campo de rúbrica está vacío. Por favor, define una rúbrica usando el asistente IA o pegándola.</div>`;
-                return;
+                validationErrors.push("El campo de rúbrica está vacío. Por favor, define una rúbrica usando el asistente IA o pegándola.");
             }
             if (!curso || curso.trim() === "" || curso.toLowerCase().includes("sin curso detectado") || curso.toLowerCase().includes("error al extraer")) {
-                resultadoDiv.innerHTML = `<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Error: El campo de curso está vacío o es inválido. Por favor, rellénalo.</div>`;
-                return;
+                validationErrors.push("El campo de curso está vacío o es inválido. Por favor, rellénalo.");
             }
             if (!nombrePrueba || nombrePrueba.trim() === "") {
-                 resultadoDiv.innerHTML = `<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Error: El campo de nombre de la prueba está vacío. Por favor, rellénalo.</div>`;
+                validationErrors.push("El campo de nombre de la prueba está vacío. Por favor, rellénalo.");
+            }
+
+            if (validationErrors.length > 0) {
+                resultadoDiv.innerHTML = `<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Errores de validación:<br><ul>${validationErrors.map(err => `<li>${err}</li>`).join('')}</ul></div>`;
                 return;
             }
 
-
             if (notaMinima < 4.0 && notaMinimaOverrideConfirmInput.value.trim().toUpperCase() !== "CONFIRMAR") {
-                resultadoDiv.textContent = "Error: Debes escribir 'CONFIRMAR' para aplicar una nota mínima inferior a 4.0.";
+                resultadoDiv.innerHTML = `<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Error: Debes escribir 'CONFIRMAR' para aplicar una nota mínima inferior a 4.0.</div>`;
                 notaMinimaOverrideWarning.style.display = 'block';
                 return;
             }
@@ -1676,7 +1680,7 @@
             };
 
             try {
-                const res = await fetch("/evaluar", { # Reusing /evaluar endpoint for simplicity
+                const res = await fetch("/evaluar", {
                     method: "POST",
                     headers: {"Content-Type": "application/json"},
                     body: JSON.stringify(dataToSend)
@@ -2289,3 +2293,4 @@
     </script>
 </body>
 </html>
+```
