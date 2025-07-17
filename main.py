@@ -1,134 +1,92 @@
-from fastapi import FastAPI, UploadFile, File, Form, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, UploadFile, File, Form
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-import httpx, os
-from dotenv import load_dotenv
-load_dotenv()
+import os, httpx
+from PIL import Image
+import pytesseract
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Página principal
 @app.get("/", response_class=HTMLResponse)
-async def read_root():
-    with open("static/index.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
+async def root():
+    return FileResponse("static/index.html")
 
-# Modelo para evaluación
-class Evaluacion(BaseModel):
-    alumno: str
-    curso: str
-    evaluacion: str
-    rubrica: str
-    optimizar: bool = False
+async def extract_text_from_image(file: UploadFile) -> str:
+    contents = await file.read()
+    with open("temp_image.jpg", "wb") as f:
+        f.write(contents)
+    image = Image.open("temp_image.jpg")
+    text = pytesseract.image_to_string(image)
+    return text.strip()
 
 @app.post("/evaluar")
-async def evaluar(data: Evaluacion):
+async def evaluar(
+    file: UploadFile = File(...),
+    nombre: str = Form(...),
+    curso: str = Form(...),
+    asignatura: str = Form("")
+):
+    texto_extraido = await extract_text_from_image(file)
+
     prompt = f"""
-ERES UN DOCENTE IA ENTRENADO EN CURRÍCULUM LATINOAMERICANO Y CHILENO.
+Eres un evaluador profesional de alto nivel con experiencia en todas las asignaturas escolares y universitarias en Chile y Latinoamérica. Evalúa el contenido proporcionado como si fueras un profesor especialista en el área correspondiente.
 
-Tu objetivo es evaluar una respuesta de estudiante considerando rúbrica, claridad, reflexión y profundidad.
+Estudiante: {nombre}
+Curso: {curso}
+Asignatura: {asignatura if asignatura else 'Detectar automáticamente'}
 
-Nombre del estudiante: {data.alumno}
-Curso: {data.curso}
+Texto extraído de imagen:
+"""
+{texto_extraido}
+"""
 
-Texto del estudiante:
-{data.evaluacion}
+Requisitos:
+- Detecta automáticamente el tipo de evaluación y asignatura si no se indica.
+- Evalúa según estándares profesionales del área y nivel (incluyendo LGE Art. 67 si es Chile).
+- Aplica criterios de corrección reales (profundidad, pertinencia, redacción, contenido visual, cálculos, etc.)
+- Otorga una nota chilena de 1,0 a 7,0.
+- Entrega un JSON con: asignatura detectada, tipo de evaluación, puntaje obtenido, nota, retroalimentación profesional extensa.
 
-Rúbrica:
-{data.rubrica}
-
-Actúa como docente real. Da feedback claro, afectivo, basado en evidencia. Entrega:
-- nota (del 1.0 al 7.0)
-- retroalimentación profesional con aciertos y mejoras
-- resumen breve para informe del profesor
-
-NO agregues elementos ficticios ni invenciones.
-
-Responde en formato JSON:
-{{
-  "nota": número,
-  "feedback": "texto",
-  "resumen": "texto"
-}}
+Formato de respuesta en JSON:
+{
+  "asignatura": "...",
+  "tipo": "...",
+  "puntaje": "...",
+  "nota": "...",
+  "feedback": "..."
+}
 """
 
     headers = {
-        "Authorization": f"Bearer {os.getenv('MISTRAL_API_KEY')}"
+        "Authorization": f"Bearer {os.getenv('MISTRAL_API_KEY')}",
+        "Content-Type": "application/json"
     }
 
     body = {
         "model": "mistral-large-latest",
-        "messages": [{"role": "user", "content": prompt}],
-        "response_format": {"type": "json_object"}
+        "messages": [
+            {"role": "user", "content": prompt}
+        ]
     }
 
     async with httpx.AsyncClient() as client:
-        response = await client.post("https://api.mistral.ai/v1/chat/completions", headers=headers, json=body)
+        response = await client.post(
+            "https://api.mistral.ai/v1/chat/completions",
+            headers=headers,
+            json=body
+        )
 
-    if response.status_code != 200:
-        return JSONResponse(content={"error": "Error en Mistral API", "detalle": response.text}, status_code=500)
+    try:
+        content = response.json()["choices"][0]["message"]["content"]
+        result = eval(content.strip())
+    except:
+        result = {
+            "asignatura": asignatura if asignatura else "Desconocida",
+            "tipo": "Desconocido",
+            "nota": "-",
+            "puntaje": "-",
+            "feedback": "No se pudo analizar correctamente la respuesta."
+        }
 
-    return JSONResponse(content=response.json())
-
-@app.post("/extraer-texto")
-async def extraer_texto_azure(file: UploadFile = File(...)):
-    AZURE_ENDPOINT = os.getenv("AZURE_ENDPOINT")
-    AZURE_KEY = os.getenv("AZURE_KEY")
-
-    headers = {
-        "Ocp-Apim-Subscription-Key": AZURE_KEY,
-        "Content-Type": "application/octet-stream"
-    }
-
-    params = {
-        "language": "es",
-        "readingOrder": "natural"
-    }
-
-    img_bytes = await file.read()
-    url = f"{AZURE_ENDPOINT}/vision/v3.2/read/analyze"
-
-    async with httpx.AsyncClient() as client:
-        res = await client.post(url, headers=headers, params=params, content=img_bytes)
-        if res.status_code != 202:
-            return JSONResponse(content={"error": "Error OCR Azure", "detalle": res.text}, status_code=400)
-
-        operation_url = res.headers["Operation-Location"]
-
-        import asyncio
-        for _ in range(10):
-            await asyncio.sleep(1.5)
-            result = await client.get(operation_url, headers=headers)
-            result_data = result.json()
-            if result_data.get("status") == "succeeded":
-                break
-
-    lineas = []
-    for region in result_data["analyzeResult"]["readResults"]:
-        for line in region["lines"]:
-            lineas.append(line["text"])
-
-    texto_extraido = "\n".join(lineas)
-
-    # Buscar nombre y curso
-    nombre = ""
-    curso = ""
-    for linea in lineas:
-        l = linea.lower()
-        if "nombre" in l:
-            nombre = linea.split(":")[-1].strip()
-        elif "curso" in l:
-            curso = linea.split(":")[-1].strip()
-
-    return {
-        "nombre": nombre if nombre else "No detectado",
-        "curso": curso if curso else "No detectado",
-        "texto": texto_extraido
-    }
-
-@app.post("/guardar")
-async def guardar_resultado(request: Request):
-    data = await request.json()
-    return {"status": "ok", "mensaje": "Guardado correctamente (demo)"}
+    return JSONResponse(content=result)

@@ -2,119 +2,138 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Genius Evaluator X</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Evaluador IA Profesional</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background: #f5f5f5;
-      color: #333;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f1f5f9;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: start;
+      min-height: 100vh;
+    }
+    .container {
+      background-color: #ffffff;
+      margin-top: 2rem;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+      width: 90%;
+      max-width: 800px;
     }
     h1 {
-      color: #004aad;
-    }
-    textarea, input[type="text"] {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      margin-bottom: 15px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      resize: vertical;
-    }
-    button {
-      padding: 10px 20px;
-      margin: 10px 5px;
-      border: none;
-      border-radius: 5px;
-      background-color: #004aad;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #003580;
-    }
-    .resultado {
-      background: #fff;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      margin-top: 20px;
+      text-align: center;
+      color: #1e3a8a;
     }
     label {
+      display: block;
+      margin-top: 1rem;
       font-weight: bold;
+    }
+    input, select, button, textarea {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 0.5rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    button {
+      background-color: #1e40af;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #1e3a8a;
+    }
+    .results {
+      margin-top: 2rem;
+      background-color: #f9fafb;
+      padding: 1.5rem;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+    }
+    .results h2 {
+      color: #0f172a;
     }
   </style>
 </head>
 <body>
-  <h1>🧠 Genius Evaluator X</h1>
+  <div class="container">
+    <h1>Evaluador IA Profesional Multiasignatura</h1>
+    
+    <label for="nombre">Nombre del estudiante</label>
+    <input type="text" id="nombre" placeholder="Ej: Miley Moreno">
 
-  <label for="imagen">📷 Subir imagen de evaluación:</label>
-  <input type="file" id="imagen">
-  <button onclick="extraerTexto()">Extraer texto con OCR</button>
+    <label for="curso">Curso</label>
+    <input type="text" id="curso" placeholder="Ej: 8°B">
 
-  <label for="nombre">👤 Nombre del estudiante:</label>
-  <input type="text" id="nombre">
+    <label for="asignatura">Asignatura (opcional, se puede detectar)</label>
+    <select id="asignatura">
+      <option value="">Detectar automáticamente</option>
+      <option value="Lenguaje">Lenguaje</option>
+      <option value="Matemática">Matemática</option>
+      <option value="Historia">Historia</option>
+      <option value="Ciencias">Ciencias</option>
+      <option value="Arte">Arte</option>
+      <option value="Educación Física">Educación Física</option>
+      <option value="Religión">Religión</option>
+      <option value="Química">Química</option>
+      <option value="Filosofía">Filosofía</option>
+    </select>
 
-  <label for="curso">🏫 Curso:</label>
-  <input type="text" id="curso">
+    <label for="imagen">Sube la imagen de la evaluación</label>
+    <input type="file" id="imagen" accept="image/*">
 
-  <label for="evaluacion">📝 Texto extraído o editado:</label>
-  <textarea id="evaluacion" rows="8"></textarea>
+    <button onclick="evaluarImagen()">Evaluar profesionalmente</button>
 
-  <label for="rubrica">📚 Rúbrica:</label>
-  <textarea id="rubrica" rows="4">Claridad, desarrollo, contenido textual, profundidad reflexiva.</textarea>
-
-  <label><input type="checkbox" id="opt"> Activar optimización del texto</label>
-
-  <button onclick="evaluarTexto()">Evaluar con IA</button>
-
-  <div class="resultado" id="resultado" style="display:none;">
-    <h3>Resultado IA:</h3>
-    <p><strong>Nota:</strong> <span id="nota"></span></p>
-    <p><strong>Feedback:</strong></p>
-    <div id="feedback"></div>
-    <p><strong>Resumen para informe:</strong></p>
-    <div id="resumen"></div>
+    <div class="results" id="resultados" style="display:none">
+      <h2>Resultado</h2>
+      <p><strong>Asignatura:</strong> <span id="asignatura_detectada"></span></p>
+      <p><strong>Nota:</strong> <span id="nota"></span></p>
+      <p><strong>Puntaje total:</strong> <span id="puntaje"></span></p>
+      <p><strong>Feedback profesional:</strong></p>
+      <textarea id="retroalimentacion" rows="6" readonly></textarea>
+    </div>
   </div>
 
-<script>
-  async function extraerTexto() {
-    const fileInput = document.getElementById('imagen');
-    const formData = new FormData();
-    formData.append("file", fileInput.files[0]);
+  <script>
+    async function evaluarImagen() {
+      const nombre = document.getElementById('nombre').value;
+      const curso = document.getElementById('curso').value;
+      const asignatura = document.getElementById('asignatura').value;
+      const fileInput = document.getElementById('imagen');
+      const resultados = document.getElementById('resultados');
 
-    const res = await fetch("/extraer-texto", {
-      method: "POST",
-      body: formData
-    });
-    const data = await res.json();
-    document.getElementById("nombre").value = data.nombre;
-    document.getElementById("curso").value = data.curso;
-    document.getElementById("evaluacion").value = data.texto;
-  }
+      if (!fileInput.files.length) {
+        alert("Debes subir una imagen para evaluar.");
+        return;
+      }
 
-  async function evaluarTexto() {
-    const payload = {
-      alumno: document.getElementById("nombre").value,
-      curso: document.getElementById("curso").value,
-      evaluacion: document.getElementById("evaluacion").value,
-      rubrica: document.getElementById("rubrica").value,
-      optimizar: document.getElementById("opt").checked
-    };
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+      formData.append("nombre", nombre);
+      formData.append("curso", curso);
+      formData.append("asignatura", asignatura);
 
-    const res = await fetch("/evaluar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+      const response = await fetch("/evaluar", {
+        method: "POST",
+        body: formData
+      });
 
-    const data = await res.json();
-    document.getElementById("resultado").style.display = "block";
-    document.getElementById("nota").innerText = data.nota;
-    document.getElementById("feedback").innerText = data.feedback;
-    document.getElementById("resumen").innerText = data.resumen;
-  }
-</script>
+      const data = await response.json();
+
+      resultados.style.display = 'block';
+      document.getElementById("nota").textContent = data.nota;
+      document.getElementById("puntaje").textContent = data.puntaje;
+      document.getElementById("retroalimentacion").value = data.feedback;
+      document.getElementById("asignatura_detectada").textContent = data.asignatura;
+    }
+  </script>
 </body>
 </html>
