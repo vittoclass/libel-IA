@@ -37,9 +37,7 @@ Curso: {curso}
 Asignatura: {asignatura if asignatura else 'Detectar automáticamente'}
 
 Texto extraído de imagen:
-"""
 {texto_extraido}
-"""
 
 Requisitos:
 - Detecta automáticamente el tipo de evaluación y asignatura si no se indica.
@@ -49,13 +47,13 @@ Requisitos:
 - Entrega un JSON con: asignatura detectada, tipo de evaluación, puntaje obtenido, nota, retroalimentación profesional extensa.
 
 Formato de respuesta en JSON:
-{
+{{
   "asignatura": "...",
   "tipo": "...",
   "puntaje": "...",
   "nota": "...",
   "feedback": "..."
-}
+}}
 """
 
     headers = {
