@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -53,35 +52,37 @@
   <label class="label">Curso:</label>
   <input type="text" id="curso" placeholder="Ej: 8°B" required />
 
-  <label class="label">Asignatura (opcional):</label>
+  <label class="label">Asignatura:</label>
   <input type="text" id="asignatura" placeholder="Ej: Lenguaje" />
 
-  <label class="label">Rúbrica (opcional):</label>
+  <label class="label">Rúbrica:</label>
   <textarea id="rubrica" rows="4" placeholder="Puedes ingresar criterios de evaluación si lo deseas"></textarea>
 
-  <label class="label">Selecciona imagen de la evaluación:</label>
-  <input type="file" id="imagen" accept="image/*" />
-  <img id="imagen-preview" src="" alt="Previsualización de la imagen" style="display:none;" />
+  <label class="label">Selecciona una o más imágenes:</label>
+  <input type="file" id="imagenes" accept="image/*" multiple />
+  <div id="preview-container"></div>
 
-  <button onclick="evaluarImagen()">📤 Evaluar con IA</button>
+  <button onclick="evaluarImagenes()">📤 Evaluar con IA</button>
 
   <div id="resultado"></div>
 
   <script>
-    function evaluarImagen() {
-      const fileInput = document.getElementById("imagen");
+    function evaluarImagenes() {
+      const fileInput = document.getElementById("imagenes");
       const nombre = document.getElementById("nombre").value;
       const curso = document.getElementById("curso").value;
       const asignatura = document.getElementById("asignatura").value;
       const rubrica = document.getElementById("rubrica").value;
 
       if (!fileInput.files.length || !nombre || !curso) {
-        alert("Debes ingresar nombre, curso y una imagen");
+        alert("Debes ingresar nombre, curso y al menos una imagen");
         return;
       }
 
       const formData = new FormData();
-      formData.append("file", fileInput.files[0]);
+      for (let i = 0; i < fileInput.files.length; i++) {
+        formData.append("files", fileInput.files[i]);
+      }
       formData.append("nombre", nombre);
       formData.append("curso", curso);
       formData.append("asignatura", asignatura);
@@ -93,13 +94,7 @@
       })
       .then(res => res.json())
       .then(data => {
-        const res = `📚 Asignatura: ${data.asignatura}
-📄 Tipo: ${data.tipo}
-📈 Puntaje: ${data.puntaje}
-✅ Nota: ${data.nota}
-
-🧠 Feedback:
-${data.feedback}`;
+        const res = `📚 Asignatura: ${data.asignatura}\n📄 Tipo: ${data.tipo}\n📈 Puntaje: ${data.puntaje}\n✅ Nota: ${data.nota}\n\n🧠 Feedback:\n${data.feedback}`;
         document.getElementById("resultado").innerText = res;
       })
       .catch(err => {
@@ -107,14 +102,15 @@ ${data.feedback}`;
       });
     }
 
-    document.getElementById("imagen").addEventListener("change", function () {
-      const preview = document.getElementById("imagen-preview");
-      const file = this.files[0];
-      if (file) {
-        preview.src = URL.createObjectURL(file);
-        preview.style.display = "block";
-      } else {
-        preview.style.display = "none";
+    document.getElementById("imagenes").addEventListener("change", function () {
+      const container = document.getElementById("preview-container");
+      container.innerHTML = "";
+      for (let i = 0; i < this.files.length; i++) {
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(this.files[i]);
+        img.style.maxWidth = "100%";
+        img.style.marginTop = "10px";
+        container.appendChild(img);
       }
     });
   </script>
