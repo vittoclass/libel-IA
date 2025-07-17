@@ -6,5 +6,3 @@ python-dotenv
 sqlalchemy
 supabase
 python-multipart
-pytesseract
-Pillow
