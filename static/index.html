@@ -1,8 +1,3 @@
-¡Comprendido\! Aquí tienes el archivo `index.html` completo y con la corrección para el botón "Seleccionar Archivos". He asegurado que el `input type="file"` ahora se oculte con CSS en lugar de `hidden`.
-
-Por favor, **reemplaza TODO el contenido de tu archivo `index.html` con este código.**
-
-```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1412,7 +1407,7 @@ Por favor, **reemplaza TODO el contenido de tu archivo `index.html` con este có
             const confirmEvaluate = confirm(`¿Estás seguro de que quieres evaluar ${processedBatchStudentsData.length} estudiantes en lote? Esto consumirá tokens de la API.`);
             if (!confirmEvaluate) return;
 
-            resultadoDiv.innerHTML = `<div class="alert alert-info"><i class="fas fa-info-circle"></i> Iniciando evaluación del lote...</div>`;
+            resultadoDiv.innerHTML = `<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Iniciando evaluación del lote...</div>`;
             const commonRubrica = document.getElementById("rubrica").value;
             const commonNombrePrueba = document.getElementById("nombrePrueba").value;
             const commonFlexibilidadIA = flexibilidadIAInput.value;
@@ -1469,6 +1464,7 @@ Por favor, **reemplaza TODO el contenido de tu archivo `index.html` con este có
 
                     const result = await res.json();
                     let iaResult = result.choices[0].message.content;
+
                     let parsedIaResult;
                     try {
                         parsedIaResult = JSON.parse(iaResult);
@@ -2293,4 +2289,3 @@ Por favor, **reemplaza TODO el contenido de tu archivo `index.html` con este có
     </script>
 </body>
 </html>
-```
