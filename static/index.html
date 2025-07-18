@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Evaluador Educativo IA - LibelIA</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href=" https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css ">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         :root {
-            --primary-color: #4b0082; /* Morado Intenso */
-            --secondary-color: #6a0dad; /* Morado un poco más claro */
-            --accent-color: #ff6347; /* Rojo Tomate para acentos */
+            --primary-color: #4b0082;
+            --secondary-color: #6a0dad;
+            --accent-color: #ff6347;
             --text-color: #333;
             --bg-light: #f8f8f8;
             --bg-medium: #eef;
@@ -101,6 +101,119 @@
             background: #ccc;
             cursor: not-allowed;
         }
+        .output {
+            background: var(--bg-medium);
+            padding: 1.2em;
+            border-radius: 8px;
+            margin-top: 1.5em;
+            border: 1px solid var(--border-color);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'monospace';
+            font-size: 0.9em;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .flex-row {
+            display: flex;
+            gap: 2em;
+            flex-wrap: wrap;
+        }
+        .half {
+            flex: 1 1 calc(50% - 1em);
+        }
+        .full-width {
+            width: 100%;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 2em;
+            border-bottom: 2px solid var(--border-color);
+        }
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 1em 1.5em;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--text-color);
+            transition: color 0.3s ease, border-bottom 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-button.active {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 2em;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .alert {
+            padding: 1em;
+            margin-bottom: 1em;
+            border-radius: 8px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
         .drop-area {
             border: 2px dashed var(--border-color);
             border-radius: 8px;
@@ -123,6 +236,176 @@
             margin-top: 1em;
             border-top: 1px solid var(--border-color);
             padding-top: 1em;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5em 0;
+            border-bottom: 1px dashed #eee;
+        }
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        .file-item .file-name {
+            font-weight: 600;
+        }
+        .file-item .file-actions button {
+            background: none;
+            color: var(--accent-color);
+            border: none;
+            padding: 0.3em 0.5em;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+        .file-item .file-actions button:hover {
+            text-decoration: underline;
+        }
+        .file-item .file-info {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+            padding-right: 10px;
+        }
+        .file-item .file-preview {
+            width: 50px;
+            height: 50px;
+            margin-right: 10px;
+            border-radius: 4px;
+            object-fit: contain;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            color: var(--text-color);
+            background: var(--bg-medium);
+        }
+        #camera-feed {
+            width: 100%;
+            height: 300px;
+            background: #000;
+            border-radius: 8px;
+            margin-bottom: 1em;
+            object-fit: cover;
+        }
+        #camera-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1em;
+            margin-bottom: 1em;
+        }
+        #camera-controls button {
+            flex: 1;
+        }
+        #photo-preview {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-top: 1em;
+            display: block;
+        }
+        .historial-item {
+            background: var(--bg-medium);
+            padding: 1em;
+            border-radius: 8px;
+            margin-bottom: 1em;
+            border: 1px solid var(--border-color);
+        }
+        .historial-item h3 {
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 0.5em;
+        }
+        .historial-item p {
+            margin-bottom: 0.3em;
+        }
+        .historial-item .actions {
+            margin-top: 1em;
+            display: flex;
+            gap: 0.5em;
+        }
+        .historial-item .actions button {
+            padding: 0.5em 1em;
+            font-size: 0.9em;
+        }
+        .historial-table-container {
+            overflow-x: auto;
+            margin-top: 1.5em;
+        }
+        .historial-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+        }
+        .historial-table th, .historial-table td {
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .historial-table th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .historial-table th.sorted-asc::after { content: " ↑"; }
+        .historial-table th.sorted-desc::after { content: " ↓"; }
+        .historial-table tbody tr:nth-child(even) { background-color: #f9f9f9; }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            margin-bottom: 2em;
+        }
+        .batch-config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1em;
+            margin-bottom: 1.5em;
+        }
+        .batch-review-item {
+            background: #fdfdfd;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5em;
+            margin-bottom: 1em;
+            box-shadow: var(--shadow-light);
+        }
+        .batch-review-item h3 {
+            margin-top: 0;
+            color: var(--secondary-color);
+        }
+        .batch-review-item textarea {
+            width: calc(100% - 20px);
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+        }
+        .batch-review-item .file-list-preview {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 0.5em;
+        }
+        .feedback-output-container h3 {
+            color: var(--primary-color);
+            font-size: 1.4em;
+            margin-top: 1.5em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5em;
+        }
+        .feedback-output-container h4 {
+            color: var(--secondary-color);
+            font-size: 1.1em;
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+        }
+        .feedback-output-container ul {
+            list-style: disc inside;
+            padding-left: 1em;
+        }
+        .feedback-output-container li {
+            margin-bottom: 0.5em;
         }
         .upload-button {
             background-color: var(--primary-color);
@@ -151,100 +434,224 @@
         <h1>📚 Evaluador Educativo IA - LibelIA</h1>
     </header>
     <main>
-        <section>
-            <h2>2. Cargar y Revisar Documentos del Estudiante</h2>
-            <p>Sube archivos (imágenes, PDFs, DOCX) o usa la cámara para capturar el trabajo del estudiante. Luego, podrás revisar el texto extraído y agrupar por estudiante.</p>
-            <div class="drop-area" id="drop-area">
-                <i class="fas fa-cloud-upload-alt"></i>
-                <p>Arrastra y suelta imágenes, PDFs o DOCX aquí, o haz clic para seleccionar.</p>
-                <input type="file" id="imagenDocumento" name="imagenDocumento" accept="image/*,.pdf,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple style="display: none;">
-                <button type="button" id="selectFileButton" class="upload-button">
-                    <i class="fas fa-upload"></i> Cargar Archivos
-                </button>
+        <div class="tabs">
+            <button class="tab-button active" data-tab="eval-section"><i class="fas fa-edit"></i> Evaluar</button>
+            <button class="tab-button" data-tab="history-section"><i class="fas fa-history"></i> Historial</button>
+            <button class="tab-button" data-tab="analysis-section"><i class="fas fa-chart-line"></i> Análisis</button>
+            <button class="tab-button" data-tab="settings-section"><i class="fas fa-cog"></i> Configuración</button>
+        </div>
+        <section id="eval-section" class="tab-content active">
+            <section>
+                <h2>1. Definir Rúbrica de Evaluación</h2>
+                <p>Define los criterios de evaluación de tu prueba, o deja que la IA te asista.</p>
+                <form id="rubricAssistantForm">
+                    <label for="rubricPrompt">Describe la rúbrica que necesitas o el tema:</label>
+                    <textarea id="rubricPrompt" rows="4" placeholder="Ej: 'Genera una rúbrica para un ensayo sobre la Revolución Francesa, con criterios de contenido, estructura y gramática, escala de 1 a 5.'"></textarea>
+                    <label for="rubricFileInput" style="margin-top: 1em;">O sube un archivo de rúbrica (TXT, DOCX, PDF):</label>
+                    <input type="file" id="rubricFileInput" accept=".txt,.docx,.pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                    <button type="submit" style="margin-top: 1em;"><i class="fas fa-magic"></i> Generar/Optimizar Rúbrica</button>
+                </form>
+                <div id="rubricAssistantOutput" class="output"></div>
+            </section>
+            <section style="margin-top: 3em;">
+                <h2>2. Cargar y Revisar Documentos del Estudiante</h2>
+                <p>Sube archivos (imágenes, PDFs, DOCX) o usa la cámara para capturar el trabajo del estudiante. Luego, podrás revisar el texto extraído y agrupar por estudiante.</p>
+                <div class="drop-area" id="drop-area">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Arrastra y suelta imágenes, PDFs o DOCX aquí, o haz clic para seleccionar.</p>
+                    <input type="file" id="imagenDocumento" name="imagenDocumento" accept="image/*,.pdf,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple style="display: none;">
+                    <button type="button" id="selectFileButton" class="upload-button">
+                        <i class="fas fa-upload"></i> Cargar Archivos
+                    </button>
+                </div>
+                <div id="camera-section" style="margin-top: 1.5em;">
+                    <h3><i class="fas fa-camera"></i> Capturar desde Cámara</h3>
+                    <video id="camera-feed" autoplay playsinline></video>
+                    <div id="camera-controls">
+                        <button id="start-camera"><i class="fas fa-video"></i> Iniciar Cámara</button>
+                        <button id="take-photo" disabled><i class="fas fa-camera"></i> Tomar Foto</button>
+                        <button id="stop-camera" disabled><i class="fas fa-stop-circle"></i> Detener Cámara</button>
+                        <button id="toggle-camera" disabled><i class="fas fa-sync-alt"></i> Cambiar Cámara</button>
+                    </div>
+                    <canvas id="camera-canvas" style="display: none;"></canvas>
+                    <img id="photo-preview" src="" alt="Previsualización de foto" style="display: none;">
+                    <div class="alert alert-info" id="imageQualityMessage" style="display: none;"></div>
+                </div>
+                <div id="file-list" class="file-list">
+                    <h4>Archivos Cargados:</h4>
+                    <ul id="uploaded-files-ul"></ul>
+                </div>
+                <button id="processBatchFilesButton" disabled><i class="fas fa-cogs"></i> Procesar Lote de Archivos</button>
+                <div id="ocrBatchStatus" class="output" style="display: none;"></div>
+            </section>
+            <section id="batchReviewSection" style="margin-top: 3em; display: none;">
+                <h2>3. Revisión del Lote de Estudiantes</h2>
+                <p>Verifica y edita el nombre del estudiante, curso y el texto extraído para cada uno. Los cambios se recordarán.</p>
+                <div id="studentBatchContainer"></div>
+                <button id="evaluateBatchButton" style="margin-top: 1em;"><i class="fas fa-paper-plane"></i> Evaluar Lote Completo</button>
+            </section>
+            <section style="margin-top: 3em;">
+                <h2>4. Realizar Evaluación o Ver Resultado</h2>
+                <p>Rellena los datos generales de la prueba y genera una evaluación individual, o revisa los resultados de la evaluación por lote.</p>
+                <form id="evalForm">
+                    <div class="flex-row">
+                        <div class="half">
+                            <label for="alumno">Nombre del estudiante:</label>
+                            <input type="text" id="alumno" name="alumno" required readonly>
+                        </div>
+                        <div class="half">
+                            <label for="curso">Curso/Asignatura:</label>
+                            <input type="text" id="curso" name="curso" placeholder="Ej: 5° Básico Lenguaje, Historia 2° Medio" required>
+                        </div>
+                    </div>
+                    <label for="nombrePrueba">Nombre de la Prueba/Actividad:</label>
+                    <input type="text" id="nombrePrueba" name="nombrePrueba" placeholder="Ej: Ensayo Simce, Informe de Investigación" required>
+                    <label for="evaluacion">Texto del estudiante (Solo lectura, se rellena con OCR/Lote):</label>
+                    <textarea id="evaluacion" name="evaluacion" rows="8" placeholder="El texto del estudiante aparecerá aquí después de usar el OCR o al seleccionar un estudiante del lote." required readonly></textarea>
+                    <label for="rubrica">Rúbrica (criterios de evaluación - rellena desde el Asistente IA):</label>
+                    <textarea id="rubrica" name="rubrica" rows="5" placeholder="Esta rúbrica se rellenará desde la sección 'Definir Rúbrica de Evaluación'." required readonly></textarea>
+                    <div class="flex-row">
+                        <div class="half">
+                            <label for="flexibilidadIA">Flexibilidad de la IA (0-10): <span id="flexibilidadValue">5</span></label>
+                            <input type="range" id="flexibilidadIA" name="flexibilidadIA" min="0" max="10" value="5">
+                            <small>0 = Muy estricta, 10 = Muy flexible en la evaluación.</small>
+                        </div>
+                        <div class="half">
+                            <label for="notaMinima">Nota Mínima Garantizada (1.0 - 7.0):</label>
+                            <input type="number" id="notaMinima" name="notaMinima" min="1.0" max="7.0" step="0.1" value="4.0">
+                            <small>La IA no asignará una nota menor a esta.</small>
+                        </div>
+                    </div>
+                    <div class="alert alert-warning" id="notaMinimaWarning" style="display: none;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Advertencia: La nota mínima garantizada es superior a la nota calculada por la IA. Se aplicará la nota mínima.
+                    </div>
+                    <div class="alert alert-warning" id="notaMinimaOverrideWarning" style="display: none;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Para aplicar una nota mínima inferior a 4.0, por favor, introduce "CONFIRMAR" en el campo de texto.
+                        <input type="text" id="notaMinimaOverrideConfirm" placeholder="CONFIRMAR">
+                    </div>
+                    <button type="submit"><i class="fas fa-paper-plane"></i> Enviar a Evaluar Individual</button>
+                </form>
+                <div id="resultado" class="output feedback-output-container"></div>
+            </section>
+        </section>
+        <section id="history-section" class="tab-content">
+            <h2>Historial de Evaluaciones</h2>
+            <div style="margin-bottom: 1em;">
+                <input type="text" id="searchHistory" placeholder="Buscar por estudiante, curso o prueba...">
+                <button id="exportGradesCsvButton" style="margin-top: 0.5em;"><i class="fas fa-file-csv"></i> Exportar a CSV</button>
             </div>
-
-            <div id="file-list" class="file-list">
-                <h4>Archivos Cargados:</h4>
-                <ul id="uploaded-files-ul"></ul>
+            <div id="historialList" class="historial-table-container">
+                <p>Cargando historial...</p>
             </div>
         </section>
+        <section id="analysis-section" class="tab-content">
+            <h2>Análisis y Portafolio de Evidencias</h2>
+            <div class="flex-row">
+                <div class="half">
+                    <label for="analysisStudentName">Nombre del Estudiante:</label>
+                    <input type="text" id="analysisStudentName" placeholder="Deja vacío para todos">
+                </div>
+                <div class="half">
+                    <label for="analysisCourseName">Curso/Asignatura:</label>
+                    <input type="text" id="analysisCourseName" placeholder="Deja vacío para todos">
+                </div>
+            </div>
+            <button id="filterAnalysis"><i class="fas fa-filter"></i> Filtrar Análisis</button>
+            <button id="generatePortfolio"><i class="fas fa-file-pdf"></i> Generar Portafolio de Evidencias (PDF)</button>
+            <div id="analysisResults" class="output" style="margin-top: 2em;">
+                <h3>Resumen de Notas</h3>
+                <div class="chart-container">
+                    <canvas id="gradesChart"></canvas>
+                </div>
+                <h3>Progreso por Criterio</h3>
+                <div class="chart-container">
+                    <canvas id="criteriaChart"></canvas>
+                </div>
+            </div>
+        </section>
+        <section id="settings-section" class="tab-content">
+            <h2><i class="fas fa-cog"></i> Configuración y Ajustes</h2>
+            <p>Aquí se podrían añadir futuras configuraciones globales de la aplicación.</p>
+            <section style="margin-top: 2em;">
+                <h3>Ajuste Manual de Notas</h3>
+                <p>Permite bonificar décimas a una evaluación existente. Esto se registrará en el historial.</p>
+                <label for="adjustEvalId">ID de Evaluación (del historial):</label>
+                <input type="text" id="adjustEvalId" placeholder="Ej: 1701010101010">
+                <label for="bonusPoints">Décimas a Bonificar (ej: 0.5 para media décima):</label>
+                <input type="number" id="bonusPoints" min="0" max="2.0" step="0.1" value="0.0">
+                <label for="bonusReason">Justificación de la bonificación:</label>
+                <textarea id="bonusReason" rows="2" placeholder="Ej: 'Participación destacada en clase', 'Mejora en la autoevaluación'"></textarea>
+                <button id="applyBonus"><i class="fas fa-plus-circle"></i> Aplicar Bonificación</button>
+                <div id="bonusStatus" class="output"></div>
+            </section>
+            <section style="margin-top: 2em;">
+                <h3>Retroalimentación para la IA (Memoria de Aprendizaje)</h3>
+                <p>Enseña a la IA a evaluar de forma más específica para un estudiante o curso, o de forma general.</p>
+                <form id="feedbackIAForm">
+                    <label for="feedbackIAType">Tipo de Contexto:</label>
+                    <select id="feedbackIAType">
+                        <option value="general">General (para todas las evaluaciones)</option>
+                        <option value="alumno">Específico para un Alumno</option>
+                        <option value="curso">Específico para un Curso</option>
+                    </select>
+                    <div id="feedbackIAContextWrapper" style="display: none;">
+                        <label for="feedbackIAContextId">Nombre del Alumno/Curso:</label>
+                        <input type="text" id="feedbackIAContextId" placeholder="Ej: 'Juan Pérez' o '8vo B Lenguaje'">
+                    </div>
+                    <label for="feedbackIAInstruction">Instrucción/Retroalimentación para la IA:</label>
+                    <textarea id="feedbackIAInstruction" rows="4" placeholder="Ej: 'Para este alumno, valora más el esfuerzo en la redacción, ya que está en proceso de mejorar su dislexia.'"></textarea>
+                    <button type="submit"><i class="fas fa-save"></i> Guardar Instrucción para IA</button>
+                    <div id="feedbackIAStatus" class="output"></div>
+                </form>
+            </section>
+        </section>
     </main>
-
-    <!-- Scripts -->
+    <div id="notaMinimaModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Confirmar Nota Mínima</h2>
+            <p>La nota calculada por la IA es <strong id="iaCalculatedNote"></strong>, pero has establecido una nota mínima garantizada de <strong id="guaranteedNote"></strong>.</p>
+            <p>¿Estás seguro de que deseas aplicar la nota mínima garantizada?</p>
+            <button id="confirmNotaMinima"><i class="fas fa-check-circle"></i> Sí, aplicar nota mínima</button>
+            <button id="cancelNotaMinima" style="background-color: gray;"><i class="fas fa-times-circle"></i> No, usar nota de la IA</button>
+        </div>
+    </div>
+    <div id="batchConfigModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeBatchConfigModal">&times;</span>
+            <h2>Configurar Lote de Archivos</h2>
+            <p>Hemos detectado <strong id="totalFilesInBatch">0</strong> archivos. Por favor, define cómo agruparlos por estudiante.</p>
+            <div class="batch-config-grid">
+                <div>
+                    <label for="filesPerStudent">Archivos por Estudiante:</label>
+                    <input type="number" id="filesPerStudent" min="1" value="1">
+                </div>
+                <div>
+                    <label for="totalStudentsInBatch">Total de Estudiantes:</label>
+                    <input type="number" id="totalStudentsInBatch" min="1" readonly>
+                </div>
+            </div>
+            <p style="font-size: 0.9em; color: #666;">(Ajusta "Archivos por Estudiante" para ver el total de estudiantes estimado.)</p>
+            <button id="confirmBatchConfig"><i class="fas fa-check-circle"></i> Confirmar y Procesar Lote</button>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.15/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.min.js"></script>
+    <script src="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js"></script>
     <script>
-        // Asegura que el DOM esté completamente cargado
-        document.addEventListener("DOMContentLoaded", function () {
-            const selectFileButton = document.getElementById("selectFileButton");
-            const imagenDocumentoInput = document.getElementById("imagenDocumento");
-            const dropArea = document.getElementById("drop-area");
-            const uploadedFilesUl = document.getElementById("uploaded-files-ul");
+        document.getElementById('selectFileButton').addEventListener('click', function() {
+            document.getElementById('imagenDocumento').click();
+        });
 
-            // Asociar el clic del botón al input de archivos
-            selectFileButton.addEventListener("click", () => {
-                if (imagenDocumentoInput) {
-                    imagenDocumentoInput.click();
-                } else {
-                    alert("Error: El input de archivos no está disponible.");
-                }
-            });
-
-            // Manejar la selección de archivos
-            imagenDocumentoInput.addEventListener("change", (e) => {
-                const files = Array.from(e.target.files);
-                console.log("Archivos seleccionados:", files);
-                alert(`Has seleccionado ${files.length} archivo(s).`);
-                renderUploadedFilesList(files);
-            });
-
-            // Manejar arrastrar y soltar
-            dropArea.addEventListener("dragover", (e) => {
-                e.preventDefault();
-                dropArea.classList.add("highlight");
-            });
-
-            dropArea.addEventListener("dragleave", () => {
-                dropArea.classList.remove("highlight");
-            });
-
-            dropArea.addEventListener("drop", (e) => {
-                e.preventDefault();
-                dropArea.classList.remove("highlight");
-                const files = Array.from(e.dataTransfer.files);
-                console.log("Archivos soltados:", files);
-                alert(`Has soltado ${files.length} archivo(s).`);
-                renderUploadedFilesList(files);
-            });
-
-            // Mostrar archivos cargados
-            function renderUploadedFilesList(files) {
-                uploadedFilesUl.innerHTML = '';
-                if (files.length === 0) {
-                    uploadedFilesUl.innerHTML = '<p>No hay archivos cargados.</p>';
-                    return;
-                }
-                files.forEach((file, index) => {
-                    const listItem = document.createElement("li");
-                    listItem.className = "file-item";
-                    let filePreviewHtml = '';
-                    if (file.type.startsWith('image/')) {
-                        const imgUrl = URL.createObjectURL(file);
-                        filePreviewHtml = `<img src="${imgUrl}" class="file-preview" alt="Preview" style="width: 50px; height: 50px; border-radius: 4px;">`;
-                    } else if (file.type === 'application/pdf') {
-                        filePreviewHtml = `<i class="fas fa-file-pdf file-preview" style="font-size: 40px; color: #dc3545;"></i>`;
-                    } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                        filePreviewHtml = `<i class="fas fa-file-word file-preview" style="font-size: 40px; color: #007bff;"></i>`;
-                    } else {
-                        filePreviewHtml = `<i class="fas fa-file file-preview" style="font-size: 40px; color: #6c757d;"></i>`;
-                    }
-
-                    listItem.innerHTML = `
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            ${filePreviewHtml}
-                            <span class="file-name">${file.name}</span>
-                        </div>
-                    `;
-                    uploadedFilesUl.appendChild(listItem);
-                });
+        document.getElementById('imagenDocumento').addEventListener('change', function(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                console.log('Archivos seleccionados:', files);
+                // Aquí puedes agregar la lógica para manejar los archivos seleccionados
             }
         });
     </script>
