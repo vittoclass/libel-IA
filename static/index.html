@@ -424,6 +424,30 @@
         .feedback-output-container li {
             margin-bottom: 0.5em;
         }
+
+        /* Estilo mejorado para el botón de carga de archivos */
+        .upload-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.8em 1.2em;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .upload-button:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        .upload-button:active {
+            transform: scale(0.98);
+        }
     </style>
 </head>
 <body>
@@ -458,7 +482,10 @@
                 <div class="drop-area" id="drop-area">
                     <i class="fas fa-cloud-upload-alt"></i>
                     <p>Arrastra y suelta imágenes, PDFs o DOCX aquí, o haz clic para seleccionar.</p>
-                    <input type="file" id="imagenDocumento" name="imagenDocumento" accept="image/*,.pdf,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple style="display: none;"> <button type="button" id="selectFileButton"><i class="fas fa-folder-open"></i> Seleccionar Archivos</button>
+                    <input type="file" id="imagenDocumento" name="imagenDocumento" accept="image/*,.pdf,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple style="display: none;">
+                    <button type="button" id="selectFileButton" class="upload-button">
+                        <i class="fas fa-upload"></i> Cargar Archivos
+                    </button>
                 </div>
                 <div id="camera-section" style="margin-top: 1.5em;">
                     <h3><i class="fas fa-camera"></i> Capturar desde Cámara</h3>
@@ -496,7 +523,8 @@
                     <div class="flex-row">
                         <div class="half">
                             <label for="alumno">Nombre del estudiante:</label>
-                            <input type="text" id="alumno" name="alumno" required readonly> </div>
+                            <input type="text" id="alumno" name="alumno" required readonly>
+                        </div>
                         <div class="half">
                             <label for="curso">Curso/Asignatura:</label>
                             <input type="text" id="curso" name="curso" placeholder="Ej: 5° Básico Lenguaje, Historia 2° Medio" required>
@@ -682,37 +710,36 @@
         // Global state
         let currentStream = null;
         let photoTakenBlob = null;
-        let uploadedFiles = []; // Almacena los File objects originales subidos
-        let processedBatchStudentsData = []; // Almacena la data de los estudiantes para el lote
-        let cameraFacingMode = 'environment'; // 'user' para frontal, 'environment' para trasera
-        let nameCorrections = {}; // Almacena correcciones de nombres: { "nombre_detectado_lower": "Nombre Corregido" }
-        let courseCorrections = {}; // NUEVO: Almacena correcciones de cursos: { "curso_detectado_lower": "Curso Corregido" }
+        let uploadedFiles = [];
+        let processedBatchStudentsData = [];
+        let cameraFacingMode = 'environment';
+        let nameCorrections = {};
+        let courseCorrections = {};
 
         let evaluationsHistory = [];
         let currentEvaluationData = null;
         let chartInstances = {};
-        let currentSortColumn = 'timestamp'; // Columna de ordenación por defecto para historial
-        let currentSortDirection = 'desc'; // Dirección de ordenación por defecto (descendente para fecha)
+        let currentSortColumn = 'timestamp';
+        let currentSortDirection = 'desc';
 
         // Configuración para PDF.js (Importante para que funcione el OCR de PDFs en el frontend)
-        // PDF.js worker is already included in the HTML via unpkg link
-        // pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
 
 
         // DOM Elements
         const evalForm = document.getElementById("evalForm");
         const resultadoDiv = document.getElementById("resultado");
-        const ocrResultadoDiv = document.getElementById("ocrBatchStatus"); // Cambiado para ser el estado del lote OCR
+        const ocrBatchStatusDiv = document.getElementById("ocrBatchStatus");
         const dropArea = document.getElementById("drop-area");
         const imagenDocumentoInput = document.getElementById("imagenDocumento");
         const selectFileButton = document.getElementById("selectFileButton");
         const uploadedFilesUl = document.getElementById("uploaded-files-ul");
-        const processBatchFilesButton = document.getElementById("processBatchFilesButton"); // Botón para procesar lote
+        const processBatchFilesButton = document.getElementById("processBatchFilesButton");
         const cameraFeed = document.getElementById("camera-feed");
         const startCameraButton = document.getElementById("start-camera");
         const takePhotoButton = document.getElementById("take-photo");
         const stopCameraButton = document.getElementById("stop-camera");
-        const toggleCameraButton = document.getElementById("toggle-camera"); // Nuevo botón para cambiar cámara
+        const toggleCameraButton = document.getElementById("toggle-camera");
         const cameraCanvas = document.getElementById("camera-canvas");
         const photoPreview = document.getElementById("photo-preview");
         const imageQualityMessage = document.getElementById("imageQualityMessage");
@@ -722,35 +749,27 @@
         const notaMinimaOverrideConfirmInput = document.getElementById("notaMinimaOverrideConfirm");
         const flexibilidadIAInput = document.getElementById("flexibilidadIA");
         const flexibilidadValueSpan = document.getElementById("flexibilidadValue");
-
-        // Elementos del Modal de Nota Mínima (se mantienen, pero su lógica está comentada)
         const notaMinimaModal = document.getElementById("notaMinimaModal");
         const iaCalculatedNoteSpan = document.getElementById("iaCalculatedNote");
         const guaranteedNoteSpan = document.getElementById("guaranteedNote");
         const confirmNotaMinimaButton = document.getElementById("confirmNotaMinima");
         const cancelNotaMinimaButton = document.getElementById("cancelNotaMinima");
         const notaMinimaModalCloseButton = notaMinimaModal.querySelector('.close-button');
-
-        // Elementos del Modal de Configuración de Lote
         const batchConfigModal = document.getElementById("batchConfigModal");
         const closeBatchConfigModalButton = document.getElementById("closeBatchConfigModal");
         const totalFilesInBatchSpan = document.getElementById("totalFilesInBatch");
         const filesPerStudentInput = document.getElementById("filesPerStudent");
         const totalStudentsInBatchInput = document.getElementById("totalStudentsInBatch");
         const confirmBatchConfigButton = document.getElementById("confirmBatchConfig");
-
-        // Elementos de la Sección de Revisión de Lote
         const batchReviewSection = document.getElementById("batchReviewSection");
         const studentBatchContainer = document.getElementById("studentBatchContainer");
         const evaluateBatchButton = document.getElementById("evaluateBatchButton");
-
         const historialListDiv = document.getElementById("historialList");
         const rubricAssistantForm = document.getElementById("rubricAssistantForm");
         const rubricAssistantOutput = document.getElementById("rubricAssistantOutput");
-        const rubricFileInput = document.getElementById("rubricFileInput"); // Input para subir rúbrica
-        const searchHistoryInput = document.getElementById("searchHistory"); // Campo de búsqueda del historial
-        const exportGradesCsvButton = document.getElementById("exportGradesCsvButton"); // Botón exportar CSV
-
+        const rubricFileInput = document.getElementById("rubricFileInput");
+        const searchHistoryInput = document.getElementById("searchHistory");
+        const exportGradesCsvButton = document.getElementById("exportGradesCsvButton");
         const analysisStudentNameInput = document.getElementById("analysisStudentName");
         const analysisCourseNameInput = document.getElementById("analysisCourseName");
         const filterAnalysisButton = document.getElementById("filterAnalysis");
@@ -762,8 +781,6 @@
         const bonusReasonTextarea = document.getElementById("bonusReason");
         const applyBonusButton = document.getElementById("applyBonus");
         const bonusStatusDiv = document.getElementById("bonusStatus");
-
-        // Elementos de Retroalimentación para la IA
         const feedbackIAForm = document.getElementById("feedbackIAForm");
         const feedbackIATypeSelect = document.getElementById("feedbackIAType");
         const feedbackIAContextWrapper = document.getElementById("feedbackIAContextWrapper");
@@ -897,19 +914,18 @@
 
         evalForm.addEventListener("submit", async e => {
             e.preventDefault();
-            resultadoDiv.innerHTML = `<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Evaluando...</div>`; // Mensaje de carga mejorado
+            resultadoDiv.innerHTML = `<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Evaluando...</div>`;
             notaMinimaWarning.style.display = 'none';
             notaMinimaOverrideWarning.style.display = 'none';
 
             const alumno = evalForm.alumno.value;
-            const evaluacion = evalForm.evaluacion.value; // Este campo es readonly, se llena con OCR
-            const rubrica = evalForm.rubrica.value; // Este campo es readonly, se llena del asistente
+            const evaluacion = evalForm.evaluacion.value;
+            const rubrica = evalForm.rubrica.value;
             const curso = evalForm.curso.value;
             const nombrePrueba = evalForm.nombrePrueba.value;
             const flexibilidadIA = flexibilidadIAInput.value;
             let notaMinima = parseFloat(notaMinimaInput.value);
 
-            // Validaciones (más específicas y visibles)
             let validationErrors = [];
             if (!alumno || alumno.trim() === "" || alumno.toLowerCase().includes("no detectado") || alumno.toLowerCase().includes("error al extraer")) {
                 validationErrors.push("El nombre del estudiante es inválido o no se ha rellenado. Por favor, revisa la sección de carga de documentos o rellénalo.");
@@ -960,7 +976,7 @@
                 nombrePrueba: nombrePrueba,
                 flexibilidadIA: flexibilidadIA,
                 notaMinima: notaMinima,
-                prompt: '' // El prompt completo se construye en el backend
+                prompt: ''
             };
 
             try {
@@ -1407,7 +1423,7 @@
             const confirmEvaluate = confirm(`¿Estás seguro de que quieres evaluar ${processedBatchStudentsData.length} estudiantes en lote? Esto consumirá tokens de la API.`);
             if (!confirmEvaluate) return;
 
-            resultadoDiv.innerHTML = `<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Iniciando evaluación del lote...</div>`;
+            resultadoDiv.innerHTML = `<div class="alert alert-info"><i class="fas fa-info-circle"></i> Iniciando evaluación del lote...</div>`;
             const commonRubrica = document.getElementById("rubrica").value;
             const commonNombrePrueba = document.getElementById("nombrePrueba").value;
             const commonFlexibilidadIA = flexibilidadIAInput.value;
@@ -1579,9 +1595,9 @@
             const context = cameraCanvas.getContext('2d');
             cameraCanvas.width = cameraFeed.videoWidth;
             cameraCanvas.height = cameraFeed.videoHeight;
-            context.drawImage(cameraFeed, 0, 0, cameraCanvas.width, cameraCanvas.height);
+            context.drawImage(cameraFeed, 0, 0, cameraCanvas.width, cameraCanvas.height); // Error: `canvas` undefined
 
-            cameraCanvas.toBlob((blob) => {
+            canvas.toBlob((blob) => { // Error: `canvas` undefined
                 photoTakenBlob = blob;
                 photoPreview.src = URL.createObjectURL(blob);
                 photoPreview.style.display = 'block';
@@ -1665,14 +1681,14 @@
             `;
 
             const dataToSend = {
-                alumno: "Asistente de Rúbricas", # Dummy data, not used for actual evaluation here
-                evaluacion: "", # Dummy data
-                rubrica: "", # Dummy data
-                curso: "", # Dummy data
-                nombrePrueba: "", # Dummy data
-                flexibilidadIA: 5, # Default
-                notaMinima: 1.0, # Default
-                prompt: fullPrompt # This prompt is used for rubric generation
+                alumno: "Asistente de Rúbricas",
+                evaluacion: "",
+                rubrica: "",
+                curso: "",
+                nombrePrueba: "",
+                flexibilidadIA: 5,
+                notaMinima: 1.0,
+                prompt: fullPrompt
             };
 
             try {
