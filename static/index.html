@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Estilos CSS (se mantienen igual) */
+        /* Tus estilos CSS aquí */
         :root {
             --primary-color: #4b0082;
             --secondary-color: #6a0dad;
@@ -653,8 +653,7 @@
                 </div>
                 <div>
                     <label for="totalStudentsInBatch">Total de Estudiantes:</label>
-                    <input type="number" id="totalStudentsInBatch" min="1" readonly>
-                </div>
+                    <input type="number" id="totalStudentsToConfirm" min="1" readonly> </div>
             </div>
             <p style="font-size: 0.9em; color: #666;">(Ajusta "Archivos por Estudiante" para ver el total de estudiantes estimado.)</p>
             <button id="confirmBatchConfig"><i class="fas fa-check-circle"></i> Confirmar y Procesar Lote</button>
@@ -679,10 +678,8 @@
         let chartInstances = {};
         let currentSortColumn = 'timestamp';
         let currentSortDirection = 'desc';
-
         // Configuración para PDF.js (Importante para que funcione el OCR de PDFs en el frontend)
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js';
-
         // DOM Elements
         const evalForm = document.getElementById("evalForm");
         const resultadoDiv = document.getElementById("resultado");
@@ -716,7 +713,7 @@
         const closeBatchConfigModalButton = document.getElementById("closeBatchConfigModal");
         const totalFilesInBatchSpan = document.getElementById("totalFilesInBatch");
         const filesPerStudentInput = document.getElementById("filesPerStudent");
-        const totalStudentsInBatchInput = document.getElementById("totalStudentsInBatch");
+        const totalStudentsInBatchInput = document.getElementById("totalStudentsToConfirm"); // Changed ID to totalStudentsToConfirm
         const confirmBatchConfigButton = document.getElementById("confirmBatchConfig");
         const batchReviewSection = document.getElementById("batchReviewSection");
         const studentBatchContainer = document.getElementById("studentBatchContainer");
@@ -783,7 +780,7 @@
         function applyOrStoreCourseCorrection(originalDetectedCourse, correctedCourse) {
             const originalLower = originalDetectedCourse.toLowerCase().trim();
             const correctedLower = correctedCourse.toLowerCase().trim();
-            if (!correctedCourse || correctedLower === "" || originalLower === correctedLower) {
+            if (!correctedCourse || correctedLower === "" || originalLower === correctedCourse) {
                 return;
             }
             if (originalLower === "sin curso detectado" || originalLower === "error al extraer curso") {
@@ -794,17 +791,40 @@
             saveCourseCorrections();
         }
 
-        // Manejadores de clic para los botones del modal de nota mínima
+        // Función para abrir el modal de confirmación de nota mínima (COMENTADA, NO SE LLAMA)
+        /*
+        function showNotaMinimaConfirmation(iaNote, minNote) {
+            iaCalculatedNoteSpan.textContent = iaNote.toFixed(1);
+            guaranteedNoteSpan.textContent = minNote.toFixed(1);
+            notaMinimaModal.style.display = 'flex';
+            notaMinimaModal.style.alignItems = 'center';
+            notaMinimaModal.style.justifyContent = 'center';
+            return new Promise(resolve => {
+                resolveNotaMinimaPromise = resolve;
+            });
+        }
+        */
+
+        // Manejadores de clic para los botones del modal de nota mínima (SE MANTIENEN LOS LISTENERS, PERO NO TENDRÁN EFECTO SI EL MODAL NUNCA SE ABRE)
         confirmNotaMinimaButton.addEventListener('click', () => {
             notaMinimaModal.style.display = 'none';
+            if (resolveNotaMinimaPromise) {
+                resolveNotaMinimaPromise(true);
+            }
         });
 
         cancelNotaMinimaButton.addEventListener('click', () => {
             notaMinimaModal.style.display = 'none';
+            if (resolveNotaMinimaPromise) {
+                resolveNotaMinimaPromise(false);
+            }
         });
 
         notaMinimaModalCloseButton.addEventListener('click', () => {
             notaMinimaModal.style.display = 'none';
+            if (resolveNotaMinimaPromise) {
+                resolveNotaMinimaPromise(false);
+            }
         });
 
         // --- Tab Navigation ---
@@ -850,7 +870,6 @@
             const flexibilidadIA = flexibilidadIAInput.value;
             let notaMinima = parseFloat(notaMinimaInput.value);
             let validationErrors = [];
-
             if (!alumno || alumno.trim() === "" || alumno.toLowerCase().includes("no detectado") || alumno.toLowerCase().includes("error al extraer")) {
                 validationErrors.push("El nombre del estudiante es inválido o no se ha rellenado. Por favor, revisa la sección de carga de documentos o rellénalo.");
             }
@@ -875,7 +894,19 @@
                 notaMinimaOverrideWarning.style.display = 'block';
                 return;
             }
-
+            let contextPrompt = "";
+            if (curso.toLowerCase().includes("diferenciada") || nombrePrueba.toLowerCase().includes("diferenciada") ||
+                curso.toLowerCase().includes("pie") || nombrePrueba.toLowerCase().includes("pie") ||
+                curso.toLowerCase().includes("adecuación") || nombrePrueba.toLowerCase().includes("adecuación")) {
+                contextPrompt = "Considera que esta es una evaluación con consideraciones especiales (ej. diferenciada, de apoyo). Sé más empático y enfócate en el progreso y el esfuerzo, no solo en el resultado final. Ajusta tu lenguaje para ser alentador y constructivo.";
+            } else if (curso.toLowerCase().includes("superior") || nombrePrueba.toLowerCase().includes("universidad") ||
+                       nombrePrueba.toLowerCase().includes("tesis") || nombrePrueba.toLowerCase().includes("investigación avanzada")) {
+                contextPrompt = "Considera que esta es una evaluación de nivel superior. Espera un análisis crítico profundo, argumentación sólida y un lenguaje académico. Sé riguroso en tu feedback.";
+            } else if (curso.toLowerCase().includes("inicial") || nombrePrueba.toLowerCase().includes("prekinder") ||
+                       curso.toLowerCase().includes("kinder") || nombrePrueba.toLowerCase().includes("juego") ||
+                       nombrePrueba.toLowerCase().includes("actividad lúdica")) {
+                contextPrompt = "Considera que esta es una evaluación para educación inicial. Enfócate en el desarrollo de habilidades básicas, la participación y la creatividad. Usa un lenguaje muy simple y positivo.";
+            }
             const dataToSend = {
                 alumno: alumno,
                 evaluacion: evaluacion,
@@ -886,7 +917,6 @@
                 notaMinima: notaMinima,
                 prompt: ''
             };
-
             try {
                 const res = await fetch("/evaluar", {
                     method: "POST",
@@ -974,26 +1004,12 @@
             uploadedFiles = uploadedFiles.concat(newFiles);
             renderUploadedFilesList();
             processBatchFilesButton.disabled = uploadedFiles.length === 0;
-            readFileContent(newFiles[0]);
+            // No llamar a readFileContent aquí, se hará en processBatch
         });
 
         selectFileButton.addEventListener("click", () => {
             imagenDocumentoInput.click();
         });
-
-        function readFileContent(file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const content = e.target.result;
-                document.getElementById("fileContentText").textContent = content;
-                document.getElementById("fileContent").style.display = 'block';
-            };
-            if (file.type.startsWith('text/')) {
-                reader.readAsText(file);
-            } else {
-                reader.readAsDataURL(file);
-            }
-        }
 
         dropArea.addEventListener("dragover", (e) => {
             e.preventDefault();
@@ -1011,7 +1027,7 @@
             uploadedFiles = uploadedFiles.concat(newFiles);
             renderUploadedFilesList();
             processBatchFilesButton.disabled = uploadedFiles.length === 0;
-            readFileContent(newFiles[0]);
+            // No llamar a readFileContent aquí, se hará en processBatch
         });
 
         function renderUploadedFilesList() {
@@ -1066,7 +1082,7 @@
             }
             totalFilesInBatchSpan.textContent = uploadedFiles.length;
             filesPerStudentInput.value = 1;
-            totalStudentsInBatchInput.value = uploadedFiles.length;
+            totalStudentsInBatchInput.value = uploadedFiles.length; // Set to totalFilesInBatchSpan.textContent
             batchConfigModal.style.display = 'flex';
         });
 
@@ -1106,23 +1122,30 @@
                 const studentId = `batch-student-${Date.now()}-${processedBatchStudentsData.length}`;
                 ocrBatchStatusDiv.innerHTML += `<p><i class="fas fa-spinner fa-spin"></i> Procesando estudiante ${processedBatchStudentsData.length + 1} (${studentFiles.length} archivos)...</p>`;
                 let combinedTextForStudent = "";
+                // Logic to get text or visual description from each file
                 for (const file of studentFiles) {
                     try {
-                        const text = await readFileAndPerformOCR(file);
+                        const text = await readFileContent(file);
                         combinedTextForStudent += `--- Contenido de ${file.name} ---\n${text}\n\n`;
                     } catch (error) {
                         combinedTextForStudent += `--- ERROR al procesar ${file.name}: ${error.message} ---\n\n`;
-                        console.error(`Error OCR para ${file.name}:`, error);
+                        console.error(`Error al leer ${file.name}:`, error);
                     }
                 }
                 let detectedName = "Nombre no detectado";
                 let detectedCourse = "Sin curso detectado";
-                try {
-                    const extracted = await extractStudentNameAndCourseFromText(combinedTextForStudent);
-                    detectedName = extracted.name;
-                    detectedCourse = extracted.course;
-                } catch (error) {
-                    console.warn("Error al extraer nombre/curso con IA:", error);
+                // Only try to extract name/course if there's actual text
+                if (combinedTextForStudent.trim() !== "" && !combinedTextForStudent.includes("[No se detectó texto legible en")) {
+                    try {
+                        const extracted = await extractStudentNameAndCourseFromText(combinedTextForStudent);
+                        detectedName = extracted.name;
+                        detectedCourse = extracted.course;
+                    } catch (error) {
+                        console.warn("Error al extraer nombre/curso con IA:", error);
+                    }
+                } else {
+                    detectedName = "Nombre no detectado (Sin texto para analizar)";
+                    detectedCourse = "Sin curso detectado (Sin texto para analizar)";
                 }
                 let finalStudentName = detectedName;
                 if (nameCorrections[detectedName.toLowerCase()]) {
@@ -1138,7 +1161,7 @@
                     name: finalStudentName,
                     originalDetectedCourse: detectedCourse,
                     course: finalCourseName,
-                    text: combinedTextForStudent.trim(),
+                    text: combinedTextForStudent.trim(), // Esto ahora podría incluir descripciones visuales
                     files: studentFiles.map(f => f.name)
                 });
                 currentFileIndex += filesPerStudent;
@@ -1147,35 +1170,22 @@
             renderBatchReviewSection();
         }
 
-        async function readFileAndPerformOCR(file) {
-            if (file.type.startsWith('image/') || file.type === 'application/pdf') {
-                const formData = new FormData();
-                formData.append("file", file);
-                const res = await fetch("/ocr", {
-                    method: "POST",
-                    body: formData
-                });
-                if (!res.ok) {
-                    const errorData = await res.json();
-                    throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+        function readFileContent(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const content = event.target.result;
+                    resolve(content);
+                };
+                reader.onerror = function(error) {
+                    reject(new Error("Error al leer el archivo"));
+                };
+                if (file.type.startsWith('image/')) {
+                    reader.readAsDataURL(file);
+                } else {
+                    reader.readAsText(file);
                 }
-                const ocrResult = await res.json();
-
-                if (ocrResult.readResults && Array.isArray(ocrResult.readResults)) {
-                    return ocrResult.readResults.map(page => page.lines ? page.lines.map(line => line.text).join('\n') : '').join('\n\n');
-                } else if (ocrResult.regions && Array.isArray(ocrResult.regions)) {
-                    return ocrResult.regions.map(region => region.lines ? region.lines.map(line => line.words.map(w => w.text).join(' ')).join('\n') : '').join('\n\n');
-                } else if (ocrResult.analyzeResult && ocrResult.analyzeResult.readResults) {
-                    return ocrResult.analyzeResult.readResults.map(page => page.content || '').join('\n\n');
-                }
-
-                return `[No se detectó texto legible en ${file.name}]`;
-            } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                const arrayBuffer = await file.arrayBuffer();
-                const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
-                return result.value;
-            }
-            return `[Contenido no extraíble de ${file.name} - Tipo: ${file.type}]`;
+            });
         }
 
         async function extractStudentNameAndCourseFromText(text) {
@@ -1199,13 +1209,13 @@
             """`;
 
             const dataToSend = {
-                alumno: "Extractor de Datos IA",
-                evaluacion: "",
-                rubrica: "",
-                curso: "",
-                nombrePrueba: "",
-                flexibilidadIA: 0,
-                notaMinima: 1.0,
+                alumno: "Extractor de Datos IA", // Dummy
+                evaluacion: "", // Dummy
+                rubrica: "", // Dummy
+                curso: "", // Dummy
+                nombrePrueba: "", // Dummy
+                flexibilidadIA: 0, // No aplica
+                notaMinima: 1.0, // No aplica
                 prompt: prompt
             };
             try {
@@ -1308,7 +1318,7 @@
             }
             const confirmEvaluate = confirm(`¿Estás seguro de que quieres evaluar ${processedBatchStudentsData.length} estudiantes en lote? Esto consumirá tokens de la API.`);
             if (!confirmEvaluate) return;
-            resultadoDiv.innerHTML = `<div class="alert alert-info"><i class="fas fa-info-circle"></i> Iniciando evaluación del lote...</div>`;
+            resultadoDiv.innerHTML = `<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Iniciando evaluación del lote...</div>`;
             const commonRubrica = document.getElementById("rubrica").value;
             const commonNombrePrueba = document.getElementById("nombrePrueba").value;
             const commonFlexibilidadIA = flexibilidadIAInput.value;
@@ -1409,7 +1419,7 @@
 
         // --- Camera Functionality (with toggle) ---
         let currentCameraStream = null;
-        let isFrontCamera = true;
+        let isFrontCamera = true; // Empieza con la frontal (user facing)
         startCameraButton.addEventListener('click', async () => {
             try {
                 if (currentCameraStream) {
@@ -1511,7 +1521,7 @@
             if (rubricFile) {
                 rubricAssistantOutput.innerHTML = `<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Procesando archivo de rúbrica...</div>`;
                 try {
-                    rubricTextContent = await readFileAndPerformOCR(rubricFile);
+                    rubricTextContent = await readFileContent(rubricFile);
                 } catch (error) {
                     rubricAssistantOutput.innerHTML = `<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Error al procesar archivo de rúbrica: ${error.message}</div>`;
                     console.error("Error al procesar archivo de rúbrica:", error);
@@ -1589,6 +1599,7 @@
         }
 
         // --- Historial de Evaluaciones (Local Storage y renderizado en tabla) ---
+        // Eliminar de Supabase (llamado desde deleteEvaluationFromHistory)
         async function deleteEvaluationFromSupabase(id) {
             try {
                 const res = await fetch(`/eliminar_evaluacion/${id}`, {
@@ -1998,7 +2009,7 @@
                 const suggestions = evalData.sugerencias_mejora ? evalData.sugerencias_mejora.map(item => item.descripcion || item).join('; ') : 'N/A';
                 const suggestionsLines = doc.splitTextToSize(suggestions, 180);
                 doc.text(suggestionsLines, 14, yPos);
-                yPos += (suggestionsLines.length * 5) + 10;
+                yPos += (suggestionsLines.length * 5) + 10; // Extra space before next item
             });
             doc.save(`Portafolio_LibelIA_${studentFilter || 'Todos'}_${courseFilter || 'Todos'}.pdf`);
         }
@@ -2021,8 +2032,8 @@
             }
             const originalEval = evaluationsHistory[evalIndex];
             let newNote = originalEval.nota_final_aplicada + bonus;
-            if (newNote > 7.0) newNote = 7.0;
-            originalEval.nota_final_aplicada = parseFloat(newNote.toFixed(1));
+            if (newNote > 7.0) newNote = 7.0; // Cap at 7.0
+            originalEval.nota_final_aplicada = parseFloat(newNote.toFixed(1)); // Round to 1 decimal
             if (!originalEval.ajustes_manuales) {
                 originalEval.ajustes_manuales = [];
             }
@@ -2034,9 +2045,10 @@
                 nota_despues: originalEval.nota_final_aplicada
             });
             localStorage.setItem('libelia_evaluations_history', JSON.stringify(evaluationsHistory));
-            loadEvaluationsHistory();
+            loadEvaluationsHistory(); // Refresh history display
             bonusStatusDiv.className = 'alert alert-success';
             bonusStatusDiv.innerHTML = `<i class="fas fa-check-circle"></i> Nota de ${originalEval.alumno} ajustada a ${originalEval.nota_final_aplicada.toFixed(1)} (+${bonus.toFixed(1)}).`;
+            // Clear form
             adjustEvalIdInput.value = '';
             bonusPointsInput.value = '0.0';
             bonusReasonTextarea.value = '';
@@ -2048,7 +2060,7 @@
                 feedbackIAContextWrapper.style.display = 'block';
             } else {
                 feedbackIAContextWrapper.style.display = 'none';
-                feedbackIAContextIdInput.value = '';
+                feedbackIAContextIdInput.value = ''; // Clear context ID if not needed
             }
         });
 
@@ -2063,7 +2075,7 @@
                     feedbackIAStatusDiv.innerHTML = `<div class="alert alert-error"><i class="fas fa-exclamation-circle"></i> Por favor, introduce un nombre de alumno/curso para la instrucción.</div>`;
                     return;
                 }
-            } else {
+            } else { // General
                 contextId = 'general';
             }
             const instruction = feedbackIAInstructionTextarea.value.trim();
@@ -2089,7 +2101,7 @@
                 }
                 const result = await res.json();
                 feedbackIAStatusDiv.innerHTML = `<div class="alert alert-success"><i class="fas fa-check-circle"></i> Instrucción guardada: ${result.status}</div>`;
-                feedbackIAInstructionTextarea.value = '';
+                feedbackIAInstructionTextarea.value = ''; // Clear instruction field
                 if (type !== 'general') {
                     feedbackIAContextIdInput.value = '';
                 }
