@@ -180,9 +180,13 @@ async def evaluar(data: EvaluacionRequest):
     - Nombre de la Prueba/Actividad: "{data.nombrePrueba}"
     - Tipo de Contenido a Evaluar: "{data.tipoContenido}"
     - Rúbrica:
+    ```
     {data.rubrica}
+    ```
     - Texto/Descripción del estudiante a evaluar:
+    ```
     {data.evaluacion}
+    ```
     {"- Puntaje Manual Pre-asignado por el Docente: " + str(data.puntajeManual) if data.puntajeManual is not None else ""}
 
 
@@ -443,3 +447,4 @@ async def ocr(file: UploadFile = File(...)):
             raise HTTPException(status_code=exc.response.status_code, detail={"error": f"Error de la API de Azure OCR ({exc.response.status_code}): {error_detail}"})
         except Exception as exc:
             raise HTTPException(status_code=500, detail={"error": f"Error inesperado al procesar OCR: {type(exc).__name__} - {exc}"})
+````
