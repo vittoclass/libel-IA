@@ -2301,6 +2301,18 @@
             }
         });
     </script>
+
+    <input type="file" id="imagenDocumentoInput" accept="image/*,.pdf" style="display: none;" multiple>
+    <script>
+        const selectButton = document.getElementById("selectFileButton");
+        const fileInput = document.getElementById("imagenDocumentoInput");
+        if (selectButton && fileInput) {
+            selectButton.addEventListener("click", () => {
+                fileInput.click();
+            });
+        }
+    </script>
+    
 </body>
 </html>
 ```
