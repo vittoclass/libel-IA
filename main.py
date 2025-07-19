@@ -1,54 +1,3 @@
-¡Entendido\! Lo he captado. Me pides que este sea el punto de inflexión, que la IA evalúe realmente "lo que ve" en cualquier tipo de documento (arte, lenguaje, matemáticas, etc.), que la retroalimentación sea impecable con justificaciones, que la "optimización" de rúbricas no sea una imposición, y que todo esto funcione sin tocar el botón de carga, que sabes que ya te funciona.
-
-**Te pido disculpas de antemano si en el pasado las soluciones no han sido lo suficientemente claras o si se han reintroducido errores.** Mi compromiso ahora es que esta versión sea la que finalmente ponga LibelIA al nivel profesional que necesitas para comercializar.
-
------
-
-### **Diagnóstico del Problema y Solución Definitiva:**
-
-1.  **"Retroalimentación vaga, no cita, basura":**
-
-      * **Causa:** El `prompt` de Mistral AI, a pesar de las instrucciones anteriores, no ha sido lo suficientemente coercitivo o específico en su estructura interna.
-      * **Solución:** Voy a modificar el `main.py` para que el `prompt` principal de evaluación sea **extremadamente específico y agresivo** en la exigencia de citas textuales directas del estudiante para "Puntos Fuertes" y "Sugerencias de Mejora", y para que la retroalimentación sea profunda y no genérica.
-
-2.  **Asistente de Rúbricas "predefinido" / "impositivo":**
-
-      * **Causa:** El `prompt` para la generación de rúbricas podría estar forzando una "optimización" no deseada o no ofreciendo suficiente variedad.
-      * **Solución:** Ajustaré el prompt en `main.py` para el asistente de rúbricas, enfocándome en que genere **múltiples versiones diversas y relevantes** que tú puedas elegir, sin imponer un formato o "optimización" genérica.
-
-3.  **IA que "evalúe lo que ve" / Análisis Multimodal (Arte, Diagramas, etc.):**
-
-      * **Causa:** Tu sistema actual solo extrae texto (OCR). Para que la IA "vea" imágenes de arte o contenido visual, necesita una descripción textual de ese visual.
-      * **Solución (Esto es la mayor adición):**
-          * **Integración de Google Cloud Vision AI:** Añadiremos el código necesario en `main.py` para que tu backend pueda llamar a **Google Cloud Vision AI (GCV)**. Esta API es superior para **analizar el contenido visual** de una imagen (detectar objetos, escenas, colores, e incluso texto en diagramas/gráficos).
-          * **Flujo "Ojo de la IA":** Cuando subas una imagen (JPG, PNG), el frontend la enviará al backend. El backend, a través de Google Cloud Vision AI, obtendrá una **descripción textual rica de lo que hay en la imagen**. Esta descripción se combinará con el texto OCR (si lo hay) y se enviará a Mistral AI. Así, Mistral podrá evaluar el trabajo del estudiante considerando **tanto el texto como los elementos visuales descritos**.
-          * **Paso adicional que deberás hacer:** Para que Google Cloud Vision AI funcione, necesitarás **instalar la librería `google-cloud-vision` en tu `requirements.txt`** y configurar sus credenciales en Railway (`GOOGLE_APPLICATION_CREDENTIALS` apuntando a un archivo JSON de Service Account).
-
-4.  **Integración de Puntaje Manual:**
-
-      * **Solución:** El `main.py` será modificado para que el `prompt` de Mistral pueda recibir y **considerar los puntajes manuales** que el profesor ingrese, integrándolos en la evaluación final.
-
-5.  **Robustez y Estabilidad:**
-
-      * Se mantendrán y reforzarán todos los manejadores de errores y validaciones en frontend y backend para asegurar que la aplicación sea lo más robusta posible.
-
------
-
-### **Archivos Actualizados (¡Listos para un Despliegue Exitoso\!)**
-
-Voy a proporcionarte los códigos **COMPLETOS y DEFINITIVOS** para `main.py`, `index.html` y `requirements.txt`. Estas versiones son el resultado final de todas nuestras conversaciones, integrando todas las correcciones y las nuevas funcionalidades que hemos discutido.
-
-**Por favor, asegúrate de reemplazar el contenido de tus archivos locales con los códigos que te doy a continuación, SIN AÑADIR NI BORRAR NADA MÁS.**
-
------
-
-### **1. `main.py` (Backend - Final y Definitivo)**
-
-Este archivo es el cerebro de tu aplicación. Incluye los prompts avanzados para la IA (metacognición, calibración del 7.0, justificaciones con citas reforzadas, integración conceptual de análisis visual), la lógica para la "memoria de aprendizaje", y todas las correcciones de errores que hemos depurado.
-
-**Instrucciones:** Reemplaza **TODO** el contenido de tu archivo `main.py` con este código.
-
-````python
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -128,17 +77,17 @@ async def evaluar(data: EvaluacionRequest):
     if not mistral_key:
         raise HTTPException(status_code=500, detail={"error": "Clave MISTRAL_API_KEY no definida"})
 
-    # --- Lógica de Metacognición y Calibración de Nota 7.0 (Directivas Base) ---
+    # --- Lógica de Metacognición y Calibración de Nota 7.0 ---
     metacognition_directives = """
     ### DIRECTIVAS CLAVE PARA LA EVALUACIÓN (METAGOGNACIÓN PEDAGÓGICA Y JUICIO HUMANO) ###
-    Actúa como un docente experto y empático que comprende profundamente la situación contextual y pedagógica de cada estudiante. Tu juicio es profesional, altamente calibrado y tu feedback, constructivo y accionable.
+    Actúa como un docente experto y empático que comprende profundamente la situación contextual y pedagógica de cada estudiante. Tu juicio es profesional y tu feedback, constructivo.
 
     1.  **Juicio Global y Calibración de Nota (Escala Chilena 1.0 a 7.0 - ¡Máxima Precisión!):**
         * Antes de asignar puntajes, forma una *impresión holística y justa* del trabajo del estudiante (ej. Excelente, Muy Bueno, Suficiente, Insuficiente).
         * **CALIBRA tus puntajes y la `nota_sugerida_ia` para que coincidan con esta impresión global y la escala chilena (1.0 a 7.0).**
         * **Nota 7.0 (Excelencia - ¡Rigurosamente!):** RESÉRVALA exclusivamente para trabajos que **superan SIGNIFICATIVAMENTE las expectativas**, demuestran un **dominio sobresaliente, pensamiento crítico avanzado, originalidad, creatividad o una profunda analítica excepcional**. Van más allá de lo pedido en la rúbrica, sorprenden e inspiran. Un 7.0 no es solo un trabajo sin errores; es una obra maestra en su contexto. **Si un trabajo es perfecto pero no sobresaliente, asígnale 6.5-6.9. No regales el 7.0.**
         * **Nota 4.0 (Aprobación Mínima):** Debe reflejar el cumplimiento básico de los requisitos, con fallos pero que permiten la aprobación.
-        * **Considera los porcentajes de exigencia estándar y la transformación a nota chilena para una calibración realista y justa.**
+        * **Considera los porcentajes de exigencia estándar y la transformación a nota chilena para una calibración realista.**
     2.  **Valoración del Esfuerzo y Progreso (Adaptación Curricular y Contexto Humano):**
         * Si el contexto del curso o la prueba sugiere adaptaciones (Diferenciada, PIE, Apoyo, Adecuación), sé **más generoso con los puntajes parciales** y en tu juicio global.
         * Enfoca el feedback en los logros, el progreso individual y los próximos pasos realistas, valorando el esfuerzo por encima de la perfección absoluta cuando el contexto lo justifique.
@@ -146,7 +95,7 @@ async def evaluar(data: EvaluacionRequest):
     3.  **Retroalimentación Formativa y Justificación Detallada con Citas (¡OBLIGATORIO Y REFORZADO!):**
         * Ofrece siempre feedback constructivo, accionable y motivador.
         * **¡CRÍTICO Y OBLIGATORIO! PARA CADA PUNTO EN "puntos_fuertes" y "sugerencias_mejora", DEBES INCLUIR UNA CITA EXACTA (entre 5 y 15 palabras) EXTRAÍDA DIRECTAMENTE del 'Texto/Descripción del estudiante a evaluar' como evidencia. Si NO PUEDES encontrar una cita PERFECTA, busca la más cercana o representativa y cítala. NO LA INVENTES.**
-        * Asegura que los "Sugerencias de Mejora" sean pasos concretos, claros y alcanzables para el nivel del estudiante.
+        * Asegura que los "Sugerencias de Mejora" sean pasos concretos, claros y alcanzables.
     4.  **Manejo de Puntajes Manuales (¡Intégralos!):**
         * {"- Puntaje Manual Pre-asignado por el Docente: " + str(data.puntajeManual) + "/" + str(data.notaMinima) if data.puntajeManual is not None else ""}
         * Si se proporciona un `puntajeManual` del profesor, considera este como una **base o un factor de ajuste MUY IMPORTANTE** en tu `puntaje_calculado_ia` y en la `nota_sugerida_ia`. Si el profesor ha pre-asignado un puntaje, intégralo en tu lógica de cálculo y justifícalo en el feedback general.
