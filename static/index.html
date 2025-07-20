@@ -60,6 +60,33 @@
 </head>
 <body>
     <h1>LibelIA - Evaluador Educativo Inteligente</h1>
+    <div class="section">
+        <h2>Información del Evaluador</h2>
+        <label for="logoInput">Subir logo del colegio:</label>
+        <input type="file" id="logoInput" accept="image/*" onchange="previewLogo(event)">
+        <div id="logoPreview" style="margin: 10px 0;"></div>
+        <label for="profesorInput">Nombre del Profesor:</label>
+        <input type="text" id="profesorInput" placeholder="Ej: Juan González">
+        <label for="departamentoInput">Departamento:</label>
+        <input type="text" id="departamentoInput" placeholder="Ej: Lenguaje">
+        <label for="cursoInput">Curso:</label>
+        <input type="text" id="cursoInput" placeholder="Ej: 8°A">
+    </div>
+    <script>
+    function previewLogo(event) {
+        const logoPreview = document.getElementById('logoPreview');
+        const file = event.target.files[0];
+        if (file) {
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            img.style.maxWidth = '200px';
+            img.style.display = 'block';
+            logoPreview.innerHTML = '';
+            logoPreview.appendChild(img);
+        }
+    }
+    </script>
+    
 
     <div class="section">
         <h2>Datos Generales</h2>
