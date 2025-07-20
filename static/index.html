@@ -3,136 +3,99 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LibelIA - Evaluador Educativo Inteligente</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        :root {
-            --primary: #5e72e4;
-            --secondary: #f4f5f7;
-            --success: #2dce89;
-            --danger: #f5365c;
-            --bg-light: #f6f9fc;
-            --white: #fff;
-            --radius: 12px;
-            --font-main: 'Open Sans', sans-serif;
-            --text: #525f7f;
-            --shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; }
+        h1 { color: #4b0082; }
+        input[type="text"], textarea, select {
+            width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px;
+            border: 1px solid #ccc; border-radius: 4px;
         }
-        body {
-            font-family: var(--font-main);
-            background: var(--bg-light);
-            padding: 2rem;
-            max-width: 1000px;
-            margin: auto;
-            color: var(--text);
-        }
-        .section {
-            background: var(--white);
-            padding: 2rem;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            margin-bottom: 2rem;
-        }
-        label, input, textarea, select {
-            display: block;
-            width: 100%;
-            margin-bottom: 1rem;
-        }
-        input[type="file"] {
-            margin-top: 0.5rem;
-        }
+        input[type="file"] { margin-bottom: 15px; }
         button {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 0.8rem 1.5rem;
-            font-size: 1rem;
-            font-weight: 600;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.2s;
+            background-color: #4b0082; color: white; padding: 10px 20px;
+            border: none; border-radius: 5px; cursor: pointer;
         }
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
-        }
+        button:hover { background-color: #6a0dad; }
+        .results { margin-top: 30px; padding: 20px; background: #eef; border-radius: 10px; }
     </style>
 </head>
 <body>
-    <h1>LibelIA - Evaluador Educativo Inteligente</h1>
-    <div class="section">
-        <h2>Información del Evaluador</h2>
-        <label for="logoInput">Subir logo del colegio:</label>
-        <input type="file" id="logoInput" accept="image/*" onchange="previewLogo(event)">
-        <div id="logoPreview" style="margin: 10px 0;"></div>
-        <label for="profesorInput">Nombre del Profesor:</label>
-        <input type="text" id="profesorInput" placeholder="Ej: Juan González">
-        <label for="departamentoInput">Departamento:</label>
-        <input type="text" id="departamentoInput" placeholder="Ej: Lenguaje">
-        <label for="cursoInput">Curso:</label>
-        <input type="text" id="cursoInput" placeholder="Ej: 8°A">
-    </div>
-    <script>
-    function previewLogo(event) {
-        const logoPreview = document.getElementById('logoPreview');
-        const file = event.target.files[0];
-        if (file) {
-            const img = document.createElement('img');
-            img.src = URL.createObjectURL(file);
-            img.style.maxWidth = '200px';
-            img.style.display = 'block';
-            logoPreview.innerHTML = '';
-            logoPreview.appendChild(img);
-        }
-    }
-    </script>
-    
+    <div class="container">
+        <h1>LibelIA - Evaluador Educativo Inteligente</h1>
+        <form id="evalForm">
+            <label>Nombre del estudiante:</label>
+            <input type="text" id="alumno" placeholder="Ej: Juan Pérez" required>
 
-    <div class="section">
-        <h2>Datos Generales</h2>
-        <label>Nombre del estudiante: <input type="text" id="nombreEstudiante" placeholder="Ej: Juan Pérez"></label>
-        <label>Curso: <input type="text" id="curso" placeholder="Ej: 8°B"></label>
-        <label>Nombre del profesor: <input type="text" id="profesor" placeholder="Ej: Sr. González"></label>
-        <label>Departamento: <input type="text" id="departamento" placeholder="Ej: Lenguaje y Comunicación"></label>
-        <label>Logo del Colegio: <input type="file" id="logoEscuela" accept="image/*"></label>
-    </div>
+            <label>Curso:</label>
+            <input type="text" id="curso" placeholder="Ej: 8°B" required>
 
-    <div class="section">
-        <h2>Cargar Rúbrica</h2>
-        <label>Subir archivo de rúbrica:
-            <input type="file" id="archivoRubrica" accept=".pdf,.doc,.docx,.txt">
-        </label>
-        <textarea id="textoRubrica" rows="5" placeholder="O pegar rúbrica aquí..."></textarea>
-    </div>
+            <label>Nombre del profesor:</label>
+            <input type="text" id="profesor" placeholder="Ej: Sr. Rodríguez" required>
 
-    <div class="section">
-        <h2>Evaluación del estudiante</h2>
-        <label>Cargar archivo del estudiante:
-            <input type="file" id="archivoEstudiante" multiple>
-        </label>
-        <button onclick="iniciarEvaluacion()">Evaluar</button>
-    </div>
+            <label>Departamento:</label>
+            <input type="text" id="departamento" placeholder="Ej: Lenguaje" required>
 
-    <div class="section" id="resultadoEvaluacion" style="display:none;">
-        <h2>Informe por Estudiante</h2>
-        <div id="informeContenido"></div>
+            <label>Logo del Colegio (opcional):</label>
+            <input type="file" id="logo" accept="image/*">
+
+            <label>Cargar Rúbrica (PDF, DOCX o TXT):</label>
+            <input type="file" id="rubricaFile" accept=".pdf,.doc,.docx,.txt">
+
+            <label>O escribir la Rúbrica directamente:</label>
+            <textarea id="rubricaText" rows="5" placeholder="Pega aquí los criterios de evaluación..."></textarea>
+
+            <label>Subir evaluación del estudiante (imagen o PDF):</label>
+            <input type="file" id="evaluacionFile" accept="image/*,.pdf" required>
+
+            <button type="submit">Evaluar</button>
+        </form>
+
+        <div id="resultado" class="results" style="display:none;">
+            <h3>Resultado de la Evaluación</h3>
+            <pre id="salida"></pre>
+        </div>
     </div>
 
     <script>
-        function iniciarEvaluacion() {
-            const nombre = document.getElementById('nombreEstudiante').value;
+        const form = document.getElementById('evalForm');
+        form.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const alumno = document.getElementById('alumno').value;
             const curso = document.getElementById('curso').value;
             const profesor = document.getElementById('profesor').value;
-            const depto = document.getElementById('departamento').value;
-            const rubrica = document.getElementById('textoRubrica').value.substring(0, 100);
-            const resultado = `Informe generado para <strong>${nombre}</strong> (${curso})<br>
-            Profesor: ${profesor}<br>
-            Departamento: ${depto}<br><br>
-            Se usó la siguiente rúbrica:<br>${rubrica}...`;
+            const departamento = document.getElementById('departamento').value;
+            const logo = document.getElementById('logo').files[0];
 
-            document.getElementById('informeContenido').innerHTML = resultado;
-            document.getElementById('resultadoEvaluacion').style.display = 'block';
-        }
+            const rubricaArchivo = document.getElementById('rubricaFile').files[0];
+            const rubricaTexto = document.getElementById('rubricaText').value;
+
+            const evaluacionArchivo = document.getElementById('evaluacionFile').files[0];
+
+            const formData = new FormData();
+            formData.append('alumno', `${alumno} (${curso})`);
+            formData.append('profesor', profesor);
+            formData.append('departamento', departamento);
+            if (logo) formData.append('logo', logo);
+            if (rubricaArchivo) {
+                formData.append('rubrica_file', rubricaArchivo);
+            } else {
+                formData.append('rubrica_text', rubricaTexto);
+            }
+            formData.append('evaluacion', evaluacionArchivo);
+
+            const response = await fetch('/evaluar', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            document.getElementById('resultado').style.display = 'block';
+            document.getElementById('salida').textContent = JSON.stringify(data, null, 2);
+        });
     </script>
 </body>
 </html>
