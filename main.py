@@ -6,15 +6,15 @@ import httpx, os, json
 
 app = FastAPI()
 
-# Montar la carpeta 'static' si deseas servir otros recursos
+# Montar carpeta estática para servir recursos si los hay
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Ruta raíz para mostrar index.html
+# Ruta raíz → Muestra el HTML principal
 @app.get("/", response_class=FileResponse)
 async def root():
     return FileResponse("index.html")
 
-# Modelo para evaluar
+# Modelo para los datos de evaluación
 class Evaluacion(BaseModel):
     alumno: str
     curso: str
@@ -23,7 +23,7 @@ class Evaluacion(BaseModel):
     evaluacion: str
     rubrica: str
 
-# Ruta para evaluación
+# Ruta de evaluación conectada a Mistral AI
 @app.post("/evaluar")
 async def evaluar(data: Evaluacion):
     prompt = f"""
@@ -45,7 +45,7 @@ Devuelve evaluación en JSON: puntaje (nota 1.0 a 7.0), feedback profesional por
     body = {
         "model": "mistral-large-latest",
         "messages": [{"role": "user", "content": prompt}],
-        "response_format": "json"
+        "response_format": { "type": "json_object" }
     }
 
     async with httpx.AsyncClient() as client:
@@ -53,13 +53,23 @@ Devuelve evaluación en JSON: puntaje (nota 1.0 a 7.0), feedback profesional por
             response = await client.post("https://api.mistral.ai/v1/chat/completions", headers=headers, json=body)
             response.raise_for_status()
             result = response.json()
-            return JSONResponse(content=result)
+
+            if 'choices' in result and result['choices']:
+                output = result['choices'][0]['message']['content']
+                try:
+                    parsed = json.loads(output)
+                    return JSONResponse(content=parsed)
+                except json.JSONDecodeError:
+                    return JSONResponse(content={"error": "La IA no devolvió JSON válido", "respuesta": output}, status_code=500)
+            else:
+                return JSONResponse(content={"error": "Respuesta inesperada del modelo"}, status_code=500)
+
         except httpx.HTTPError as e:
             return JSONResponse(status_code=500, content={"error": str(e)})
 
-# Ruta para guardar resultado en Supabase (opcional si ya está en tu sistema)
+# Ruta para guardar resultados (opcional, para Supabase o base futura)
 @app.post("/guardar")
 async def guardar_resultado(request: Request):
     data = await request.json()
-    # Aquí va tu lógica de Supabase, si ya la integraste
+    # Puedes agregar lógica de guardado aquí
     return {"message": "Resultado guardado correctamente"}
