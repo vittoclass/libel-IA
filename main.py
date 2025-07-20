@@ -41,11 +41,11 @@ Con base en la siguiente rúbrica:
 Devuelve evaluación en JSON: puntaje (nota 1.0 a 7.0), feedback profesional por secciones, fortalezas y debilidades.
 """
 
-    headers = {"Authorization": f"Bearer {os.getenv('MISTRAL_API_KEY')}"}
+    headers = {"Authorization": f"Bearer {os.getenv('MISTRAL_API_KEY')}", "Content-Type": "application/json"}
     body = {
         "model": "mistral-large-latest",
         "messages": [{"role": "user", "content": prompt}],
-        "response_format": { "type": "json_object" }
+        "response_format": {"type": "json_object"}
     }
 
     async with httpx.AsyncClient() as client:
@@ -64,12 +64,14 @@ Devuelve evaluación en JSON: puntaje (nota 1.0 a 7.0), feedback profesional por
             else:
                 return JSONResponse(content={"error": "Respuesta inesperada del modelo"}, status_code=500)
 
+        except httpx.HTTPStatusError as e:
+            return JSONResponse(status_code=e.response.status_code, content={"error": f"HTTP error: {e.response.text}"})
         except httpx.HTTPError as e:
-            return JSONResponse(status_code=500, content={"error": str(e)})
+            return JSONResponse(status_code=500, content={"error": f"Error de conexión: {str(e)}"})
 
 # Ruta para guardar resultados (opcional, para Supabase o base futura)
 @app.post("/guardar")
 async def guardar_resultado(request: Request):
     data = await request.json()
-    # Puedes agregar lógica de guardado aquí
     return {"message": "Resultado guardado correctamente"}
+
