@@ -1,0 +1,101 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>LibelIA - Evaluador Educativo Inteligente</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; }
+        h1 { color: #4b0082; }
+        input[type="text"], textarea, select {
+            width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px;
+            border: 1px solid #ccc; border-radius: 4px;
+        }
+        input[type="file"] { margin-bottom: 15px; }
+        button {
+            background-color: #4b0082; color: white; padding: 10px 20px;
+            border: none; border-radius: 5px; cursor: pointer;
+        }
+        button:hover { background-color: #6a0dad; }
+        .results { margin-top: 30px; padding: 20px; background: #eef; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LibelIA - Evaluador Educativo Inteligente</h1>
+        <form id="evalForm">
+            <label>Nombre del estudiante:</label>
+            <input type="text" id="alumno" placeholder="Ej: Juan Pérez" required>
+
+            <label>Curso:</label>
+            <input type="text" id="curso" placeholder="Ej: 8°B" required>
+
+            <label>Nombre del profesor:</label>
+            <input type="text" id="profesor" placeholder="Ej: Sr. Rodríguez" required>
+
+            <label>Departamento:</label>
+            <input type="text" id="departamento" placeholder="Ej: Lenguaje" required>
+
+            <label>Logo del Colegio (opcional):</label>
+            <input type="file" id="logo" accept="image/*">
+
+            <label>Cargar Rúbrica (PDF, DOCX o TXT):</label>
+            <input type="file" id="rubricaFile" accept=".pdf,.doc,.docx,.txt">
+
+            <label>O escribir la Rúbrica directamente:</label>
+            <textarea id="rubricaText" rows="5" placeholder="Pega aquí los criterios de evaluación..."></textarea>
+
+            <label>Subir evaluación del estudiante (imagen o PDF):</label>
+            <input type="file" id="evaluacionFile" accept="image/*,.pdf" required>
+
+            <button type="submit">Evaluar</button>
+        </form>
+
+        <div id="resultado" class="results" style="display:none;">
+            <h3>Resultado de la Evaluación</h3>
+            <pre id="salida"></pre>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('evalForm');
+        form.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const alumno = document.getElementById('alumno').value;
+            const curso = document.getElementById('curso').value;
+            const profesor = document.getElementById('profesor').value;
+            const departamento = document.getElementById('departamento').value;
+            const logo = document.getElementById('logo').files[0];
+
+            const rubricaArchivo = document.getElementById('rubricaFile').files[0];
+            const rubricaTexto = document.getElementById('rubricaText').value;
+
+            const evaluacionArchivo = document.getElementById('evaluacionFile').files[0];
+
+            const formData = new FormData();
+            formData.append('alumno', `${alumno} (${curso})`);
+            formData.append('profesor', profesor);
+            formData.append('departamento', departamento);
+            if (logo) formData.append('logo', logo);
+            if (rubricaArchivo) {
+                formData.append('rubrica_file', rubricaArchivo);
+            } else {
+                formData.append('rubrica_text', rubricaTexto);
+            }
+            formData.append('evaluacion', evaluacionArchivo);
+
+            const response = await fetch('/evaluar', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            document.getElementById('resultado').style.display = 'block';
+            document.getElementById('salida').textContent = JSON.stringify(data, null, 2);
+        });
+    </script>
+</body>
+</html>
