@@ -2,76 +2,102 @@ from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-import httpx, os, json
+import httpx, os, json, aiofiles
 
 app = FastAPI()
-
-# Montar carpeta estática para servir recursos si los hay
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Ruta raíz → Muestra el HTML principal
 @app.get("/", response_class=FileResponse)
 async def root():
     return FileResponse("index.html")
 
-# Modelo para los datos de evaluación
-class Evaluacion(BaseModel):
-    alumno: str
-    curso: str
-    profesor: str
-    departamento: str
-    evaluacion: str
-    rubrica: str
-
-# Ruta de evaluación conectada a Mistral AI
+# Ruta para evaluar desde archivos o texto directo
 @app.post("/evaluar")
-async def evaluar(data: Evaluacion):
+async def evaluar(
+    alumno: str = Form(...),
+    curso: str = Form(...),
+    profesor: str = Form(...),
+    departamento: str = Form(...),
+    rubrica_text: str = Form(None),
+    evaluacion_text: str = Form(None),
+    rubrica_file: UploadFile = File(None),
+    evaluacion: UploadFile = File(None)
+):
+    # OCR API Setup
+    azure_endpoint = os.getenv("AZURE_OCR_ENDPOINT")
+    azure_key = os.getenv("AZURE_OCR_KEY")
+    headers = {
+        "Ocp-Apim-Subscription-Key": azure_key,
+        "Content-Type": "application/octet-stream"
+    }
+
+    async def extract_text_from_file(file: UploadFile):
+        content = await file.read()
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                f"{azure_endpoint}/vision/v3.2/read/analyze",
+                headers=headers,
+                content=content
+            )
+            operation_url = r.headers.get("Operation-Location")
+            if not operation_url:
+                return ""
+
+            # Esperar procesamiento
+            import asyncio
+            for _ in range(10):
+                await asyncio.sleep(1.5)
+                status = await client.get(operation_url, headers={"Ocp-Apim-Subscription-Key": azure_key})
+                result = status.json()
+                if result.get("status") == "succeeded":
+                    lines = result["analyzeResult"]["readResults"][0]["lines"]
+                    return "\n".join([line["text"] for line in lines])
+        return ""
+
+    # Extraer rúbrica
+    rubrica = rubrica_text or ""
+    if rubrica_file:
+        rubrica = await extract_text_from_file(rubrica_file)
+
+    # Extraer evaluación
+    evaluacion_str = evaluacion_text or ""
+    if evaluacion:
+        evaluacion_str = await extract_text_from_file(evaluacion)
+
     prompt = f"""
 EVALUACIÓN IA
-Alumno: {data.alumno}
-Curso: {data.curso}
-Profesor: {data.profesor}
-Departamento: {data.departamento}
+Alumno: {alumno}
+Curso: {curso}
+Profesor: {profesor}
+Departamento: {departamento}
+
 Texto del estudiante:
-{data.evaluacion}
+{evaluacion_str}
 
 Con base en la siguiente rúbrica:
-{data.rubrica}
+{rubrica}
 
 Devuelve evaluación en JSON: puntaje (nota 1.0 a 7.0), feedback profesional por secciones, fortalezas y debilidades.
 """
 
-    headers = {"Authorization": f"Bearer {os.getenv('MISTRAL_API_KEY')}", "Content-Type": "application/json"}
-    body = {
+    mistral_headers = {"Authorization": f"Bearer {os.getenv('MISTRAL_API_KEY')}"}
+    mistral_body = {
         "model": "mistral-large-latest",
         "messages": [{"role": "user", "content": prompt}],
-        "response_format": {"type": "json_object"}
+        "response_format": "json"
     }
 
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.post("https://api.mistral.ai/v1/chat/completions", headers=headers, json=body)
-            response.raise_for_status()
-            result = response.json()
+            r = await client.post("https://api.mistral.ai/v1/chat/completions", headers=mistral_headers, json=mistral_body)
+            r.raise_for_status()
+            result = r.json()
+            return JSONResponse(content=result)
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"error": str(e)})
 
-            if 'choices' in result and result['choices']:
-                output = result['choices'][0]['message']['content']
-                try:
-                    parsed = json.loads(output)
-                    return JSONResponse(content=parsed)
-                except json.JSONDecodeError:
-                    return JSONResponse(content={"error": "La IA no devolvió JSON válido", "respuesta": output}, status_code=500)
-            else:
-                return JSONResponse(content={"error": "Respuesta inesperada del modelo"}, status_code=500)
-
-        except httpx.HTTPStatusError as e:
-            return JSONResponse(status_code=e.response.status_code, content={"error": f"HTTP error: {e.response.text}"})
-        except httpx.HTTPError as e:
-            return JSONResponse(status_code=500, content={"error": f"Error de conexión: {str(e)}"})
-
-# Ruta para guardar resultados (opcional, para Supabase o base futura)
 @app.post("/guardar")
 async def guardar_resultado(request: Request):
     data = await request.json()
+    # Lógica futura: guardar en Supabase
     return {"message": "Resultado guardado correctamente"}
-
