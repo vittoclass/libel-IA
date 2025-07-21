@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -38,17 +37,17 @@
             <label>Departamento:</label>
             <input type="text" id="departamento" placeholder="Ej: Lenguaje" required>
 
-            <label>Logo del Colegio (opcional):</label>
-            <input type="file" id="logo" accept="image/*">
-
-            <label>Cargar Rúbrica (PDF, DOCX o TXT):</label>
+            <label>Subir Rúbrica (PDF, DOCX, TXT):</label>
             <input type="file" id="rubricaFile" accept=".pdf,.doc,.docx,.txt">
 
             <label>O escribir la Rúbrica directamente:</label>
             <textarea id="rubricaText" rows="5" placeholder="Pega aquí los criterios de evaluación..."></textarea>
 
-            <label>Subir evaluación del estudiante (imagen o PDF):</label>
-            <input type="file" id="evaluacionFile" accept="image/*,.pdf" required>
+            <label>Subir Evaluación del estudiante (PDF o imagen):</label>
+            <input type="file" id="evaluacionFile" accept="image/*,.pdf">
+
+            <label>O escribir directamente la respuesta del estudiante:</label>
+            <textarea id="evaluacionText" rows="8" placeholder="Pega aquí la respuesta del estudiante..."></textarea>
 
             <button type="submit">Evaluar</button>
         </form>
@@ -68,33 +67,45 @@
             const curso = document.getElementById('curso').value;
             const profesor = document.getElementById('profesor').value;
             const departamento = document.getElementById('departamento').value;
-            const logo = document.getElementById('logo').files[0];
-
-            const rubricaArchivo = document.getElementById('rubricaFile').files[0];
-            const rubricaTexto = document.getElementById('rubricaText').value;
-
-            const evaluacionArchivo = document.getElementById('evaluacionFile').files[0];
+            const rubricaFile = document.getElementById('rubricaFile').files[0];
+            const rubricaText = document.getElementById('rubricaText').value;
+            const evaluacionFile = document.getElementById('evaluacionFile').files[0];
+            const evaluacionText = document.getElementById('evaluacionText').value;
 
             const formData = new FormData();
-            formData.append('alumno', `${alumno} (${curso})`);
+            formData.append('alumno', alumno);
+            formData.append('curso', curso);
             formData.append('profesor', profesor);
             formData.append('departamento', departamento);
-            if (logo) formData.append('logo', logo);
-            if (rubricaArchivo) {
-                formData.append('rubrica_file', rubricaArchivo);
+
+            if (rubricaFile) {
+                formData.append('rubrica_file', rubricaFile);
             } else {
-                formData.append('rubrica_text', rubricaTexto);
+                formData.append('rubrica_text', rubricaText);
             }
-            formData.append('evaluacion', evaluacionArchivo);
 
-            const response = await fetch('/evaluar', {
-                method: 'POST',
-                body: formData
-            });
+            if (evaluacionFile) {
+                formData.append('evaluacion_file', evaluacionFile);
+            } else {
+                formData.append('evaluacion_text', evaluacionText);
+            }
 
-            const data = await response.json();
-            document.getElementById('resultado').style.display = 'block';
-            document.getElementById('salida').textContent = JSON.stringify(data, null, 2);
+            try {
+                const response = await fetch('/evaluar', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const resultadoDiv = document.getElementById('resultado');
+                const salida = document.getElementById('salida');
+                const data = await response.json();
+
+                resultadoDiv.style.display = 'block';
+                salida.textContent = JSON.stringify(data, null, 2);
+            } catch (e) {
+                document.getElementById('resultado').style.display = 'block';
+                document.getElementById('salida').textContent = 'Error en la respuesta del servidor';
+            }
         });
     </script>
 </body>
